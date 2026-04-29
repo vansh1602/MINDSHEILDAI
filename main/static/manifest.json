@@ -1,0 +1,16 @@
+{
+  "name": "MindShield AI",
+  "short_name": "MindShield",
+  "description": "AI-Powered Mental Health Companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060912",
+  "theme_color": "#7c6ee6",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/8202/8202155.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

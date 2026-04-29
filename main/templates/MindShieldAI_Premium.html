@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="/static/manifest.json"> <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); });
+  }
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindShield AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+/* ─── GLOBAL RESET & VARIABLES ─── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060912;
+  --accent:#7c6ee6;--accent2:#a78bfa;
+  --teal:#2dd4bf;--rose:#f472b6;--amber:#fbbf24;
+  --text:#f1f5f9;--text2:#cbd5e1;--text3:#94a3b8;
+  --danger:#ef4444;--success:#10b981;--warn:#f59e0b;
+  --glass-bg: rgba(17, 24, 39, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+body{font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ─── CALMING SCENERY BACKGROUND ─── */
+.bg-scenery {
+  position: fixed; top: -5%; left: -5%; width: 110%; height: 110%;
+  background: url('https://images.unsplash.com/photo-1436891620584-47fd0e565afb?q=80&w=2000&auto=format&fit=crop') center/cover no-repeat;
+  z-index: -2; animation: slowPan 40s ease-in-out infinite alternate;
+}
+.bg-overlay {
+  position: fixed; inset: 0; z-index: -1;
+  background: linear-gradient(135deg, rgba(6,9,18,0.85), rgba(124,110,230,0.15), rgba(6,9,18,0.9));
+  background-size: 200% 200%; animation: pulseGradient 15s ease infinite;
+}
+@keyframes slowPan { 0% { transform: scale(1) translate(0, 0); } 100% { transform: scale(1.05) translate(-1%, -1%); } }
+@keyframes pulseGradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* ─── PREMIUM NAVIGATION ─── */
+nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 2rem;border-bottom:1px solid var(--glass-border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(6,9,18,0.6);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:0.6rem;font-family:'Syne',sans-serif;font-weight:700;font-size:1.2rem;letter-spacing:-0.02em}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--teal));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px; box-shadow: 0 0 15px rgba(45,212,191,0.3)}
+.nav-tabs{display:flex;gap:0.4rem;background:rgba(0,0,0,0.3);border-radius:12px;padding:6px; border:1px solid var(--glass-border)}
+.nav-tab{position:relative; z-index:1; padding:0.5rem 1rem;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);color:var(--text2);border:none;background:transparent;font-family:'DM Sans',sans-serif;}
+.nav-tab::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--accent),var(--teal));opacity:0;transition:all 0.3s ease;z-index:-1;border-radius:8px;}
+.nav-tab.active{color:white; box-shadow: 0 4px 15px rgba(124,110,230,0.4); transform:scale(1.05);}
+.nav-tab.active::before{opacity:1;}
+.nav-tab:hover:not(.active){color:white; text-shadow:0 0 8px rgba(255,255,255,0.5);}
+.nav-tab:hover:not(.active)::before{opacity:0.2; transform:scale(1.05);}
+.nav-tab:active{transform:scale(0.92)} 
+.nav-right{display:flex;align-items:center;gap:0.8rem}
+.badge-live{display:flex;align-items:center;gap:0.4rem;font-size:0.72rem;color:var(--success);padding:0.3rem 0.7rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;backdrop-filter:blur(10px)}
+.dot-pulse{width:6px;height:6px;background:var(--success);border-radius:50%;animation:pulse 2s infinite;box-shadow: 0 0 8px var(--success)}
+
+/* Layout Alignment Fix */
+.page{display:none;flex:1;animation:fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity:0; transform:translateY(15px); width:100%;}
+.page.active{display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;}
+.content-wrapper{width:100%; max-width:800px; display:flex; flex-direction:column; align-items:center;}
+
+@keyframes fadeIn{to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
+
+/* Mobile Bottom Navigation */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(6,9,18,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  z-index: 100;
+  padding: 0.8rem 1rem;
+  justify-content: space-around;
+  align-items: center;
+}
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text3);
+  font-size: 0.7rem;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.mobile-nav-item.active {
+  color: var(--accent2);
+}
+.mobile-nav-item .icon {
+  font-size: 1.2rem;
+}
+
+/* ─── HERO & BUTTONS ─── */
+.hero{text-align:center; width:100%; margin-bottom:2rem; margin-top:2rem;}
+.hero-badge{display:inline-flex;align-items:center;gap:0.5rem;padding:0.4rem 1rem;background:rgba(124,110,230,0.15);border:1px solid rgba(124,110,230,0.3);border-radius:20px;font-size:0.78rem;color:var(--accent2);margin-bottom:1.5rem;font-weight:500;backdrop-filter:blur(10px)}
+.hero h1{font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;line-height:1.1;letter-spacing:-0.03em;margin-bottom:1rem;text-shadow: 0 4px 20px rgba(0,0,0,0.5)}
+.hero h1 span{background:linear-gradient(135deg,var(--accent2),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:var(--text2);font-size:1.05rem;line-height:1.7;margin-bottom:2.5rem;font-weight:300;text-shadow: 0 2px 10px rgba(0,0,0,0.5); max-width:700px; margin-left:auto; margin-right:auto;}
+.hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+
+.btn-primary{padding:0.85rem 2rem;background:linear-gradient(135deg,var(--accent),#6d28d9);color:white;border:none;border-radius:12px;font-size:0.9rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);letter-spacing:0.01em; box-shadow: 0 4px 15px rgba(124,110,230,0.3)}
+.btn-primary:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 8px 25px rgba(124,110,230,0.5)}
+.btn-primary:active{transform:translateY(0) scale(0.95);box-shadow:0 2px 10px rgba(124,110,230,0.3)} 
+
+.btn-ghost{padding:0.85rem 2rem;background:rgba(255,255,255,0.03);color:var(--text);border:1px solid var(--glass-border);border-radius:12px;font-size:0.9rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);backdrop-filter:blur(10px)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent2);background:rgba(124,110,230,0.1); transform:translateY(-3px) scale(1.02)}
+.btn-ghost:active{transform:translateY(0) scale(0.95)} 
+
+/* ─── PREMIUM GLASS CARDS & GAMES GRID ─── */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;width:100%;}
+.feat-card, .doctor-card, .chat-box, .result-card, .game-active, .about-box {
+  background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.feat-card{padding:1.4rem;cursor:pointer;position:relative;overflow:hidden}
+.feat-card:hover{border-color:var(--accent);transform:translateY(-5px) scale(1.02);box-shadow: 0 15px 35px rgba(124,110,230,0.15)}
+.feat-card:active{transform:scale(0.97)}
+.feat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:0.9rem}
+.feat-card h3{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:600;margin-bottom:0.4rem}
+.feat-card p{font-size:0.8rem;color:var(--text2);line-height:1.5;font-weight:300}
+
+/* UPDATED GAME CARD STYLING */
+.games-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem; width:100%;}
+.game-card{
+  background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border);
+  border-radius: 20px; padding:1.8rem; cursor:pointer; position:relative; overflow:hidden;
+  display:flex; flex-direction:column; justify-content:flex-start; transition:all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.game-card:hover{border-color:var(--accent);transform:translateY(-8px) scale(1.03);box-shadow:0 15px 35px rgba(124,110,230,0.2)}
+.game-card:active{transform:scale(0.96)}
+.game-tag{font-size:0.75rem;padding:0.3rem 0.8rem;border-radius:20px;font-weight:600;margin-bottom:1.2rem;display:inline-block;backdrop-filter:blur(5px); width:fit-content;}
+.game-emoji{font-size:2.8rem;margin-bottom:1.2rem;display:block;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.3))}
+.game-card h3{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:0.6rem}
+.game-card p{font-size:0.85rem;color:var(--text2);line-height:1.6}
+
+/* ─── CHAT UI FIXES ─── */
+.section-header{text-align:center; margin-bottom:1.5rem; width:100%;}
+.section-header h2{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:0.5rem;text-shadow:0 4px 15px rgba(0,0,0,0.6)}
+.section-header p{color:var(--text2);font-size:0.95rem;text-shadow:0 2px 10px rgba(0,0,0,0.5)}
+
+.crisis-banner{width:100%; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.3); border-radius:12px; padding:1rem 1.2rem; display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem; backdrop-filter:blur(10px); justify-content:center; text-align:center;}
+.crisis-banner p{font-size:0.85rem;color:var(--text);line-height:1.5; font-weight:500;}
+.crisis-banner strong{color:var(--danger)}
+.crisis-icon{font-size:20px;flex-shrink:0}
+
+.progress-bar{width:100%; background:rgba(0,0,0,0.4);border-radius:4px;height:4px;margin-bottom:1.5rem;overflow:hidden;border:1px solid var(--glass-border)}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--teal));border-radius:4px;transition:width 0.5s ease;box-shadow:0 0 10px var(--teal)}
+
+.chat-box{width:100%; display:flex;flex-direction:column;overflow:hidden;min-height:450px;position:relative;}
+.chat-header{padding:1rem 1.4rem;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:0.8rem;background:rgba(0,0,0,0.2)}
+.ai-avatar{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--teal));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 10px rgba(124,110,230,0.4)}
+.ai-name{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700}
+.ai-status{font-size:0.75rem;color:var(--success)}
+.messages{flex:1;padding:1.5rem;overflow-y:auto;display:flex;flex-direction:column;gap:1rem;max-height:450px}
+.msg{max-width:80%;animation:msgIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.msg.ai{align-self:flex-start}
+.msg.user{align-self:flex-end}
+.msg-bubble{padding:0.9rem 1.2rem;border-radius:16px;font-size:0.9rem;line-height:1.6;box-shadow:0 4px 15px rgba(0,0,0,0.15)}
+.msg.ai .msg-bubble{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:4px 16px 16px 16px;color:var(--text)}
+.msg.user .msg-bubble{background:linear-gradient(135deg,var(--accent),#6d28d9);color:white;border-radius:16px 4px 16px 16px;border:1px solid rgba(124,110,230,0.4)}
+
+.typing-bubble{display:flex;align-items:center;gap:6px;padding:1rem;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:4px 16px 16px 16px;width:fit-content}
+.typing-dot{width:6px;height:6px;background:var(--accent2);border-radius:50%;animation:wave 1.2s infinite ease-in-out;}
+.typing-dot:nth-child(2){animation-delay:0.2s}
+.typing-dot:nth-child(3){animation-delay:0.4s}
+@keyframes wave{ 0%, 60%, 100% { transform: translateY(0); opacity:0.4;} 30% { transform: translateY(-4px); opacity:1;} }
+
+.chat-input-area{padding:1.2rem;border-top:1px solid var(--glass-border);display:flex;gap:0.8rem;align-items:flex-end;background:rgba(0,0,0,0.2)}
+.chat-input{flex:1;background:rgba(0,0,0,0.4);border:1px solid var(--glass-border);border-radius:12px;padding:0.85rem 1.2rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;resize:none;max-height:120px;min-height:48px;outline:none;transition:all 0.3s}
+.chat-input:focus{border-color:var(--accent);box-shadow:0 0 10px rgba(124,110,230,0.2);background:rgba(0,0,0,0.6)}
+.send-btn{width:48px;height:48px;background:linear-gradient(135deg,var(--accent),#6d28d9);border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);flex-shrink:0;color:white;box-shadow:0 4px 10px rgba(124,110,230,0.3)}
+.send-btn:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 6px 15px rgba(124,110,230,0.5)}
+.send-btn:active{transform:scale(0.9)}
+.send-btn:disabled{background:rgba(255,255,255,0.1);color:var(--text3);box-shadow:none;cursor:not-allowed;transform:none;}
+
+.quick-replies{display:flex;flex-wrap:wrap;gap:0.6rem;padding:0 1.4rem 1rem}
+.qr-btn{padding:0.5rem 1rem;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;font-size:0.85rem;font-weight:500;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);white-space:nowrap}
+.qr-btn:hover{border-color:var(--accent);color:white;background:rgba(124,110,230,0.25);transform:translateY(-2px) scale(1.05); box-shadow:0 4px 10px rgba(124,110,230,0.3)}
+.qr-btn:active{transform:scale(0.95)}
+
+.result-card{padding:2.5rem;text-align:center; width:100%;}
+.risk-ring{width:140px;height:140px;margin:0 auto 1.5rem;position:relative;filter:drop-shadow(0 0 15px rgba(0,0,0,0.5))}
+.risk-ring svg{transform:rotate(-90deg)}
+.risk-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.risk-score{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800}
+
+/* Radar Chart Canvas */
+.chart-container{width:100%; max-width:350px; margin: 1.5rem auto; position:relative;}
+
+.insights-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:1.5rem;text-align:left}
+.insight-item{background:rgba(0,0,0,0.4);border-radius:12px;padding:1.5rem;border:1px solid var(--glass-border)}
+
+/* PDF Specific Styles */
+#pdf-content-area { background: var(--bg); border-radius:20px; padding-bottom: 1rem; }
+
+/* ─── VOICE UI FIXES ─── */
+.voice-orb{width:180px;height:180px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);box-shadow:0 10px 30px rgba(45,212,191,0.3); margin: 2rem auto 1rem;}
+.voice-orb:hover{transform:scale(1.05);box-shadow:0 15px 40px rgba(124,110,230,0.4)}
+.voice-orb:active{transform:scale(0.95)}
+.voice-orb.listening{animation:breathe 2s ease-in-out infinite}
+.voice-ring{position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--accent);opacity:0;transition:opacity 0.3s}
+.voice-orb.listening .voice-ring{animation:ringPulse 2s ease-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04);box-shadow:0 15px 50px rgba(45,212,191,0.5)}}
+@keyframes ringPulse{0%{transform:scale(0.95);opacity:0.6}100%{transform:scale(1.3);opacity:0}}
+.voice-icon{font-size:60px;text-shadow:0 4px 15px rgba(0,0,0,0.3)}
+
+.game-active{padding:2rem;max-width:650px;margin:0 auto;width:100%}
+
+/* Memory Match Premium 3D Flip */
+.memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;max-width:320px;margin:1.5rem auto}
+.memory-card { aspect-ratio: 1; perspective: 1000px; background: transparent; border: none; cursor: pointer; }
+.memory-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); transform-style: preserve-3d; }
+.memory-card.flipped .memory-inner, .memory-card.matched .memory-inner { transform: rotateY(180deg); }
+.memory-front, .memory-back { position: absolute; width: 100%; height: 100%; border-radius: 12px; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+.memory-front { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); }
+.memory-back { background: rgba(124,110,230,0.2); border: 1px solid var(--accent); transform: rotateY(180deg); }
+.memory-card.matched .memory-back { background: rgba(16,185,129,0.2); border-color: var(--success); box-shadow: 0 0 15px rgba(16,185,129,0.4); }
+
+/* ─── DOCTORS UI ─── */
+.doctor-filters{display:flex;gap:0.6rem;margin-bottom:2rem;flex-wrap:wrap; justify-content:center; width:100%;}
+.filter-btn{padding:0.5rem 1.2rem;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);border-radius:20px;font-size:0.85rem;font-weight:500;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);backdrop-filter:blur(10px)}
+.filter-btn.active{background:rgba(124,110,230,0.3);border-color:var(--accent);color:white;box-shadow:0 4px 15px rgba(124,110,230,0.4); transform:scale(1.05)}
+.filter-btn:active{transform:scale(0.95)}
+.doctors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem; width:100%;}
+.doctor-card{padding:1.8rem; display:flex; flex-direction:column; justify-content:space-between; cursor:default;}
+.doctor-card:hover{border-color:var(--accent);transform:translateY(-8px) scale(1.02);box-shadow:0 15px 35px rgba(45,212,191,0.15)}
+
+.doc-avatar{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
+.doc-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;}
+.doc-tags{display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1.5rem}
+.doc-tag{padding:0.3rem 0.8rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;font-size:0.75rem;color:var(--text2); margin-right:2px; margin-bottom:2px;}
+
+.btn-connect{
+  width:100%; padding:0.8rem; 
+  background:linear-gradient(135deg, rgba(124,110,230,0.8), rgba(45,212,191,0.8));
+  border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:white;
+  font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif;
+  transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter:blur(5px); box-shadow:0 4px 15px rgba(0,0,0,0.2); margin-top:0.5rem;
+}
+.btn-connect:hover{ background:linear-gradient(135deg, rgba(124,110,230,1), rgba(45,212,191,1)); transform:translateY(-3px) scale(1.02); box-shadow:0 8px 25px rgba(124,110,230,0.4); border-color:rgba(255,255,255,0.3); }
+.btn-connect:active{ transform:translateY(0) scale(0.95); box-shadow:0 2px 10px rgba(124,110,230,0.3); }
+
+/* ─── ABOUT PAGE FANCY ANIMATIONS ─── */
+.about-box { padding:2.5rem; margin-bottom:2rem; width:100%; }
+.dev-card {
+  max-width:450px; width:100%; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); 
+  border-radius:20px; padding:3rem 2rem; text-align:center; transition:all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.dev-card:hover { transform: translateY(-10px) scale(1.02); box-shadow: 0 20px 40px rgba(124,110,230,0.25); border-color: var(--accent); background:rgba(17, 24, 39, 0.7); }
+.dev-avatar {
+  width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--teal));
+  margin:0 auto 1.8rem; display:flex; align-items:center; justify-content:center; font-size:2.5rem; color:white; font-weight:700; font-family:'Syne',sans-serif;
+  animation: floatAvatar 4s ease-in-out infinite; border:2px solid rgba(255,255,255,0.2);
+}
+@keyframes floatAvatar { 0%, 100% { transform: translateY(0); box-shadow: 0 5px 15px rgba(45,212,191,0.4); } 50% { transform: translateY(-10px); box-shadow: 0 15px 25px rgba(124,110,230,0.6); } }
+.stagger-1 { animation: slideUpFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(30px); width:100%; }
+.stagger-2 { animation: slideUpFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards; opacity: 0; transform: translateY(30px); width:100%; display:flex; justify-content:center;}
+.stagger-3 { animation: slideUpFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards; opacity: 0; transform: translateY(30px); width:100%; }
+@keyframes slideUpFade { to { opacity: 1; transform: translateY(0); } }
+
+@media(max-width:640px){
+  .hero h1{font-size:2.2rem}
+  .features{grid-template-columns:1fr;padding:1rem}
+  nav{padding:1rem}
+  .nav-tabs{display:none}
+  .mobile-nav{display:flex}
+  .page.active{padding-bottom: 5rem;} /* Space for bottom nav */
+}
+</style>
+</head>
+<body>
+
+<div class="bg-scenery"></div>
+<div class="bg-overlay"></div>
+
+<div id="app">
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    MindShield AI
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home')">Home</button>
+    <button class="nav-tab" onclick="showPage('assess')">Assessment</button>
+    <button class="nav-tab" onclick="showPage('voice')">Aria</button>
+    <button class="nav-tab" onclick="showPage('games')">Mind Games</button>
+    <button class="nav-tab" onclick="showPage('doctors')">Find Doctor</button>
+    <button class="nav-tab" onclick="showPage('about')">About</button>
+  </div>
+  <div class="nav-right">
+    <div class="badge-live"><div class="dot-pulse"></div>AI Online</div>
+  </div>
+</nav>
+
+<!-- Mobile Navigation -->
+<div class="mobile-nav">
+  <button class="mobile-nav-item active" onclick="showPage('home')"><span class="icon">🏠</span>Home</button>
+  <button class="mobile-nav-item" onclick="showPage('assess')"><span class="icon">🩺</span>Assess</button>
+  <button class="mobile-nav-item" onclick="showPage('voice')"><span class="icon">🎙️</span>Aria</button>
+  <button class="mobile-nav-item" onclick="showPage('games')"><span class="icon">🧩</span>Games</button>
+  <button class="mobile-nav-item" onclick="showPage('doctors')"><span class="icon">👨‍⚕️</span>Doctors</button>
+</div>
+
+<div id="page-home" class="page active">
+  <div class="content-wrapper">
+    <div class="hero">
+      <div class="hero-badge">✦ AI-Powered Mental Health Companion</div>
+      <h1>You deserve to feel<br><span>understood, not judged</span></h1>
+      <p>MindShield uses clinical AI — not forms or sliders — to have a real conversation with you. Like a psychiatrist who's always there, 24/7, free and private.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="showPage('assess')">Start Assessment →</button>
+        <button class="btn-ghost" onclick="showPage('voice')">Talk to Aria 🎙️</button>
+      </div>
+    </div>
+    <div class="features">
+      <div class="feat-card" onclick="showPage('assess')">
+        <div class="feat-icon" style="background:rgba(124,110,230,0.2); color:var(--accent2)">🩺</div>
+        <h3>Clinical Assessment</h3>
+        <p>Conversational AI that asks real psychological questions — like a psychiatrist would.</p>
+      </div>
+      <div class="feat-card" onclick="showPage('voice')">
+        <div class="feat-icon" style="background:rgba(45,212,191,0.2); color:var(--teal)">🎙️</div>
+        <h3>Aria — Voice Companion</h3>
+        <p>A female AI voice who listens, calms you down, and is always there. You're not alone.</p>
+      </div>
+      <div class="feat-card" onclick="showPage('games')">
+        <div class="feat-icon" style="background:rgba(244,114,182,0.2); color:var(--rose)">🧩</div>
+        <h3>Therapeutic Games</h3>
+        <p>Science-backed mini-games for anxiety, focus, and emotional regulation.</p>
+      </div>
+      <div class="feat-card" onclick="showPage('doctors')">
+        <div class="feat-icon" style="background:rgba(251,191,36,0.2); color:var(--amber)">👨‍⚕️</div>
+        <h3>Real Doctors</h3>
+        <p>Connect with licensed psychiatrists for follow-up care. When you're ready.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-assess" class="page">
+  <div class="content-wrapper">
+    <div class="section-header">
+      <h2>Your Mental Health Check-In</h2>
+      <p>Just talk naturally. No forms. No sliders. Dr. Aria will guide you.</p>
+    </div>
+    
+    <div class="crisis-banner">
+      <div class="crisis-icon">🆘</div>
+      <p><strong>In crisis right now?</strong> iCall India: <strong>9152987821</strong> · Vandrevala Foundation: <strong>1860-2662-345</strong></p>
+    </div>
+    
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    
+    <div class="chat-box" id="assess-chat-box">
+      <div class="chat-header">
+        <div class="ai-avatar">🩺</div>
+        <div>
+          <div class="ai-name">Dr. Aria</div>
+          <div class="ai-status">● Clinical AI · Confidential</div>
+        </div>
+      </div>
+      <div class="messages" id="chat-messages"></div>
+      <div id="quick-replies-wrap" class="quick-replies"></div>
+      <div class="chat-input-area" id="assess-input-area">
+        <textarea class="chat-input" id="chat-input" rows="1" placeholder="Share what's on your mind..." onkeydown="handleKey(event)" oninput="autoGrow(this)"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+    <div id="result-section" style="display:none; width:100%;"></div>
+  </div>
+</div>
+
+<div id="page-voice" class="page">
+  <div class="content-wrapper">
+    <div class="section-header">
+      <h2>Meet Aria 🌸</h2>
+      <p>Your friendly AI companion. She's here to listen, validate, and sit with you.</p>
+    </div>
+
+    <div class="voice-orb" id="voice-orb" onclick="toggleVoice()">
+      <div class="voice-ring"></div>
+      <div class="voice-icon">🌸</div>
+    </div>
+    <div id="voice-status" style="font-size:0.9rem;color:white;text-align:center;text-shadow:0 2px 5px rgba(0,0,0,0.8); margin-bottom:1.5rem; font-weight:500;">Tap Aria to start talking</div>
+    
+    <div class="chat-box" style="margin-bottom:1rem;">
+      <div class="messages" id="voice-messages" style="max-height:300px;"></div>
+    </div>
+
+    <div style="display:flex; gap:0.8rem; width:100%; margin-bottom:1.5rem;">
+      <input type="text" id="aria-text-input" placeholder="Or text Aria here..."
+        style="flex:1; background:rgba(0,0,0,0.5); border:1px solid var(--glass-border); border-radius:12px; padding:0.9rem 1.2rem; color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.95rem; outline:none; transition:all 0.3s; backdrop-filter:blur(10px); box-shadow:inset 0 2px 10px rgba(0,0,0,0.5)"
+        onfocus="this.style.borderColor='var(--accent)';" onblur="this.style.borderColor='var(--glass-border)'"
+        onkeydown="if(event.key==='Enter') sendAriaText()">
+      <button class="send-btn" onclick="sendAriaText()">➤</button>
+    </div>
+
+    <div style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center;">
+      <button class="btn-ghost" style="padding:0.6rem 1.2rem; border-radius:20px; font-size:0.8rem;" onclick="ariaSpeak('breathing')">🌬️ Breathing Exercise</button>
+      <button class="btn-ghost" style="padding:0.6rem 1.2rem; border-radius:20px; font-size:0.8rem;" onclick="ariaSpeak('grounding')">🌿 Grounding Technique</button>
+    </div>
+  </div>
+</div>
+
+<div id="page-games" class="page">
+  <div class="content-wrapper">
+    <div class="section-header">
+      <h2>Mind Games</h2>
+      <p>Science-backed activities for emotional regulation and mental clarity</p>
+    </div>
+    
+    <div id="game-menu" class="games-grid">
+      <div class="game-card" onclick="startGame('breathing')">
+        <div>
+          <span class="game-emoji">🌊</span>
+          <div class="game-tag tag-calm" style="background:rgba(45,212,191,0.2);color:var(--teal)">Calm</div>
+          <h3>Box Breathing</h3>
+          <p>4-4-4-4 breathing pattern used by Navy SEALs to reduce anxiety fast.</p>
+        </div>
+      </div>
+      <div class="game-card" onclick="startGame('memory')">
+        <div>
+          <span class="game-emoji">🧩</span>
+          <div class="game-tag tag-focus" style="background:rgba(124,110,230,0.2);color:var(--accent2)">Focus</div>
+          <h3>Memory Match</h3>
+          <p>Redirect anxious thoughts by engaging your working memory.</p>
+        </div>
+      </div>
+      <div class="game-card" onclick="startGame('grounding')">
+        <div>
+          <span class="game-emoji">🌿</span>
+          <div class="game-tag tag-calm" style="background:rgba(45,212,191,0.2);color:var(--teal)">Grounding</div>
+          <h3>5-4-3-2-1 Senses</h3>
+          <p>The classic anxiety-busting grounding technique, guided by AI.</p>
+        </div>
+      </div>
+      <div class="game-card" onclick="startGame('chat')">
+        <div>
+          <span class="game-emoji">💬</span>
+          <div class="game-tag tag-social" style="background:rgba(244,114,182,0.2);color:var(--rose)">Social</div>
+          <h3>Emotion Naming</h3>
+          <p>Talk to Aria about how you feel. Naming emotions reduces intensity.</p>
+        </div>
+      </div>
+      <div class="game-card" onclick="startGame('worrypop')">
+        <div>
+          <span class="game-emoji">🫧</span>
+          <div class="game-tag tag-calm" style="background:rgba(16,185,129,0.2);color:var(--success)">Release</div>
+          <h3>Worry Pop</h3>
+          <p>Type out a specific stressor, trap it inside a bubble, and pop it.</p>
+        </div>
+      </div>
+      <div class="game-card" onclick="startGame('gratitude')">
+        <div>
+          <span class="game-emoji">🫙</span>
+          <div class="game-tag tag-social" style="background:rgba(251,191,36,0.2);color:var(--amber)">Positivity</div>
+          <h3>Gratitude Jar</h3>
+          <p>Build a visual collection of positive moments to rewire your brain.</p>
+        </div>
+      </div>
+      <div class="game-card" onclick="startGame('emdr')">
+        <div>
+          <span class="game-emoji">👀</span>
+          <div class="game-tag tag-focus" style="background:rgba(124,110,230,0.2);color:var(--accent2)">Therapy</div>
+          <h3>Eye Tracking</h3>
+          <p>Bilateral stimulation (EMDR technique) to rapidly calm the nervous system.</p>
+        </div>
+      </div>
+    </div>
+    <div id="game-active-area" style="display:none; width:100%;"></div>
+  </div>
+</div>
+
+<div id="page-doctors" class="page">
+  <div class="content-wrapper" style="max-width:1000px">
+    <div class="section-header">
+      <h2>Connect with Real Doctors</h2>
+      <p>Licensed psychiatrists and psychologists — book a session when you're ready.</p>
+    </div>
+    <div class="doctor-filters">
+      <button class="filter-btn active" onclick="filterDoc(this,'all')">All Specialists</button>
+      <button class="filter-btn" onclick="filterDoc(this,'anxiety')">Anxiety</button>
+      <button class="filter-btn" onclick="filterDoc(this,'depression')">Depression</button>
+      <button class="filter-btn" onclick="filterDoc(this,'students')">Student Stress</button>
+      <button class="filter-btn" onclick="filterDoc(this,'online')">Online Only</button>
+    </div>
+    <div class="doctors-grid" id="doctors-grid"></div>
+  </div>
+</div>
+
+<div id="page-about" class="page">
+  <div class="content-wrapper">
+    <div class="stagger-1 section-header" style="margin-bottom:3rem;">
+      <h2 style="font-size:2.5rem;">About MindShield AI</h2>
+      <p style="font-size:1.1rem; color:var(--teal)">Predictive Analytics & AI Mental Wellness Platform</p>
+    </div>
+    
+    <div class="stagger-2">
+      <div class="dev-card">
+        <div class="dev-avatar">VS</div>
+        <h4 style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:0.4rem;letter-spacing:-0.02em; text-shadow:0 2px 10px rgba(0,0,0,0.5)">Vansh Sharma</h4>
+        <p style="font-size:1rem;color:var(--teal);margin-bottom:0.5rem;font-weight:600">Creator & Lead Developer · B.Tech CSE</p>
+        <p style="font-size:0.9rem;color:var(--text2);margin-bottom:2rem">IILM University, Greater Noida</p>
+        <a href="https://www.linkedin.com/in/vanshs1602/" target="_blank" style="display:inline-block;padding:0.8rem 1.8rem;background:linear-gradient(135deg, rgba(124,110,230,0.4), rgba(45,212,191,0.4));color:white;border-radius:30px;text-decoration:none;font-size:0.95rem;font-weight:700;border:1px solid rgba(255,255,255,0.2);transition:all 0.3s;box-shadow:0 8px 20px rgba(0,0,0,0.3)">Connect on LinkedIn →</a>
+      </div>
+    </div>
+
+    <div class="about-box stagger-3" style="margin-top:3rem;">
+      <h3 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin-bottom:1.5rem;color:var(--accent2);text-align:center">⚙️ Under the Hood</h3>
+      <div class="insights-grid" style="margin-top:0">
+        <div class="insight-item">
+          <div class="insight-label">Frontend Architecture</div>
+          <div class="insight-val" style="font-size:0.95rem">HTML5, CSS3, Vanilla JS (Glassmorphism)</div>
+        </div>
+        <div class="insight-item">
+          <div class="insight-label">Backend Engine</div>
+          <div class="insight-val" style="font-size:0.95rem">Python Flask API</div>
+        </div>
+        <div class="insight-item">
+          <div class="insight-label">Predictive ML Model</div>
+          <div class="insight-val" style="font-size:0.95rem">Random Forest (Scikit-Learn)</div>
+        </div>
+        <div class="insight-item">
+          <div class="insight-label">Conversational AI Engine</div>
+          <div class="insight-val" style="font-size:0.95rem">Google Gemini 2.5 Flash LLM</div>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:2rem; font-size:0.9rem; font-weight:500; color:var(--success); padding:1rem; background:rgba(16,185,129,0.15); border-radius:12px; border:1px solid rgba(16,185,129,0.3); backdrop-filter:blur(10px)">
+        🔒 Privacy First: Stateless architecture with zero database retention.
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ─── DOCTORS LOGIC ───
+const DOCTORS=[
+  {name: "Dr. Nishtha Laspal", spec: "Consultant Psychiatrist", emoji: "👩‍⚕️", bg: "rgba(124,110,230,0.2)", rating: 4.8, reviews: 312, tags: ["Anxiety", "OCD", "Psychotherapy"], location: "Kailash Hospital, Sector 27, Noida", phone: "0120-2444444", link: "https://www.kailashhealthcare.com/Noida27-PsychiatryPsychology-DrNishthaLaspal", avail: true, type: ["all", "depression", "anxiety"]},
+  {name: "Dr. Arti Anand", spec: "Sr. Clinical Psychologist", emoji: "👩‍⚕️", bg: "rgba(45,212,191,0.2)", rating: 4.9, reviews: 247, tags: ["CBT", "Academic Stress", "Delhi"], location: "Sir Ganga Ram Hospital, Delhi", phone: "+91 9871603581", link: "https://wa.me/919871603581", avail: true, type: ["all", "anxiety", "students", "online"]},
+  {name: "Dr. Praveen Tripathi", spec: "Psychiatrist", emoji: "👨‍⚕️", bg: "rgba(251,191,36,0.2)", rating: 4.9, reviews: 421, tags: ["Depression", "OCD", "Noida"], location: "Renowa Care, Noida", phone: "+91 9999808648", link: "https://wa.me/919999808648", avail: true, type: ["all", "depression", "anxiety"]},
+  {name: "Dr. Puneet Dwevedi", spec: "Chief Psychiatrist", emoji: "👨‍⚕️", bg: "rgba(244,114,182,0.2)", rating: 4.8, reviews: 203, tags: ["Bipolar", "Depression", "Greater Noida"], location: "Artemis Hospitals (Near Greater Noida)", phone: "+91 9800400498", link: "https://wa.me/919800400498", avail: true, type: ["all", "students", "depression"]},
+  {name: "Dr. Madhusudan Solanki", spec: "Head of Mental Health", emoji: "👨‍⚕️", bg: "rgba(239,68,68,0.2)", rating: 4.7, reviews: 189, tags: ["Depression", "Addiction", "Delhi"], location: "Max Hospital, Saket, Delhi", phone: "011-26515050", link: "https://www.maxhealthcare.in", avail: false, type: ["all", "depression"]},
+  {name: "Dr. Ashima Ranjan", spec: "Sr. Consultant Psychiatry", emoji: "👩‍⚕️", bg: "rgba(16,185,129,0.2)", rating: 4.8, reviews: 156, tags: ["ADHD", "Anxiety", "Noida"], location: "Yatharth Hospital, Noida", phone: "1800-3000-3000", link: "https://www.yatharthhospitals.com", avail: true, type: ["all", "anxiety", "students"]}
+];
+
+function renderDoctors(filter="all"){
+  const g=document.getElementById("doctors-grid");
+  const filtered=DOCTORS.filter(d=>d.type.includes(filter));
+  g.innerHTML=filtered.map(d=>`
+    <div class="doctor-card">
+      <div>
+        <div class="doctor-top">
+          <div class="doc-avatar" style="background:${d.bg}">${d.emoji}</div>
+          <div><div class="doc-name">${d.name}</div><div class="doc-spec" style="font-size:0.8rem; color:var(--text2);">${d.spec}</div><div class="doc-rating" style="font-size:0.8rem; color:var(--amber); margin-top:0.3rem;">★ ${d.rating} <span style="color:var(--text3)">(${d.reviews} reviews)</span></div></div>
+        </div>
+        <div style="font-size:0.85rem; color:var(--text); margin-bottom: 1.2rem; line-height: 1.6; background:rgba(0,0,0,0.3); padding:1rem; border-radius:12px; border:1px solid rgba(255,255,255,0.05); box-shadow:inset 0 2px 10px rgba(0,0,0,0.2)">
+          📍 <span style="color:var(--text2)">${d.location}</span><br>📞 <span style="color:var(--text2)">${d.phone}</span>
+        </div>
+        <div class="doc-tags" style="display:flex; flex-wrap:wrap; margin-bottom:1.5rem;">
+          ${d.tags.map(t=>`<span class="doc-tag" style="margin-right:4px; margin-bottom:4px;">${t}</span>`).join("")}
+        </div>
+      </div>
+      <div>
+        <div class="doc-avail" style="display:flex; align-items:center; gap:0.5rem; background:rgba(0,0,0,0.4); padding:0.5rem 0.8rem; border-radius:8px; margin-bottom:1rem; border:1px solid rgba(255,255,255,0.05); width:max-content;">
+          <div class="avail-dot" style="background:${d.avail?"var(--success)":"var(--warn)"}; width:8px; height:8px; border-radius:50%; box-shadow:0 0 8px ${d.avail?"var(--success)":"var(--warn)"}"></div>
+          <span style="color:white; font-size:0.8rem; font-weight:600;">${d.avail?"Available today":"Next slot: Tomorrow"}</span>
+        </div>
+        <button class="btn-connect" onclick="window.open('${d.link}', '_blank')">Connect / Book →</button>
+      </div>
+    </div>
+  `).join("");
+}
+renderDoctors();
+
+function filterDoc(el,f){
+  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active"); renderDoctors(f);
+}
+
+// ─── NAVIGATION ───
+function showPage(p){
+  document.querySelectorAll(".page").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".nav-tab").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".mobile-nav-item").forEach(el=>el.classList.remove("active"));
+  const newPage = document.getElementById("page-"+p);
+  newPage.style.animation = 'none'; newPage.offsetHeight; newPage.style.animation = null; 
+  newPage.classList.add("active");
+  const tabs=["home","assess","voice","games","doctors","about"];
+  document.querySelectorAll(".nav-tab")[tabs.indexOf(p)]?.classList.add("active");
+  document.querySelectorAll(".mobile-nav-item")[tabs.indexOf(p)]?.classList.add("active");
+  if(p==="assess"&&msgs.length===0) initAssessment();
+  if(p==="voice"&&voiceMsgs.length===0) initVoice();
+}
+
+// ─── AGENT 1: CLINICAL ASSESSMENT (RADAR CHART UPDATE) ───
+let msgs=[]; let questionCount=0; let isTyping=false; let conversationHistory=[]; let assessmentDone=false; 
+let myRadarChart = null;
+let currentAssessmentData = null;
+
+const SYSTEM_PROMPT=`You are Dr. Aria, an empathetic AI mental health companion.
+CRITICAL RULE: DO NOT INTERROGATE THE USER. Use Reflective Listening and keep responses to 1-2 brief sentences.
+If user is panicking or tired, stop questions immediately and output ASSESSMENT_COMPLETE early.
+
+CRITICAL RULE FOR JSON OUTPUT: 
+Provide exactly two things in the recommendations array: 
+1. A real-world, physical actionable habit (e.g., "Go outside and take a 10-minute walk").
+2. A specific tool from this dashboard (e.g., "Use the Box Breathing tool").
+
+Provide a deeply detailed "clinical_summary" paragraph.
+Provide a "key_factors" array with 2-3 specific triggers or symptoms.
+
+OUTPUT FORMAT TO END:
+ASSESSMENT_COMPLETE
+{"risk_level":"moderate","primary_concerns":["anxiety"],"depression_score":6,"anxiety_score":7,"isolation_score":4,"stress_score":8,"burnout_score":5,"clinical_summary":"A comprehensive paragraph explaining the user's emotional state, context, and immediate stressors.","key_factors":["Upcoming examinations", "Lack of sleep"],"recommendations":["Drink a large glass of cold water", "Play Worry Pop game"]}`;
+
+async function initAssessment(){
+  msgs.push({role:"ai",text:"Hi, I'm Dr. Aria. 💙 I'm here to listen — no forms, no judgment. How have you been feeling lately? Take your time."});
+  renderMessages(); setQuickReplies(["Not great, honestly","Pretty anxious","Really struggling","I'm okay, just checking"]);
+}
+
+function resetAssessment() {
+  msgs = []; conversationHistory = []; questionCount = 0; assessmentDone = false; currentAssessmentData = null;
+  document.getElementById("chat-messages").innerHTML = ""; document.getElementById("result-section").style.display = "none";
+  document.getElementById("assess-chat-box").style.display = "flex"; document.getElementById("progress-fill").style.width = "0%";
+  document.getElementById("chat-input").disabled = false;
+  if(myRadarChart) { myRadarChart.destroy(); myRadarChart = null; }
+  initAssessment();
+}
+
+function setQuickReplies(replies){ document.getElementById("quick-replies-wrap").innerHTML=replies.map(r=>`<button class="qr-btn" onclick="useQuickReply(this.innerText)">${r}</button>`).join(""); }
+function useQuickReply(text){ document.getElementById("chat-input").value=text; sendMessage(); }
+
+function renderMessages(){
+  const c=document.getElementById("chat-messages");
+  c.innerHTML=msgs.map(m=>`<div class="msg ${m.role}"><div class="msg-bubble">${m.text}</div><div class="msg-time">${m.role==="ai"?"Dr. Aria":"You"} · just now</div></div>`).join("");
+  if(isTyping) c.innerHTML+=`<div class="msg ai"><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  c.scrollTop=c.scrollHeight; document.getElementById("progress-fill").style.width=Math.min(questionCount/8*100,100)+"%";
+}
+
+function handleKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage()}}
+function autoGrow(el){el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px"}
+
+async function sendMessage(){
+  if(isTyping||assessmentDone) return;
+  const input=document.getElementById("chat-input"); const text=input.value.trim(); if(!text) return;
+  input.value=""; input.style.height="auto"; document.getElementById("quick-replies-wrap").innerHTML="";
+  msgs.push({role:"user",text}); conversationHistory.push({role:"user",content:text});
+  questionCount++; isTyping=true; renderMessages(); document.getElementById("send-btn").disabled=true;
+  
+  try{
+    const resp=await fetch("/api/chat",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({system:SYSTEM_PROMPT, messages:conversationHistory}) });
+    const data=await resp.json(); const rawText = data.reply || "I'm here with you. Can you tell me more?";
+    conversationHistory.push({role:"assistant",content:rawText}); isTyping=false;
+    if(rawText.includes("ASSESSMENT_COMPLETE")){
+      const jsonMatch=rawText.match(/\{[\s\S]*\}/); const displayText=rawText.split("ASSESSMENT_COMPLETE")[0].trim();
+      if(displayText) msgs.push({role:"ai",text:displayText}); renderMessages(); assessmentDone=true;
+      document.getElementById("chat-input").disabled = true; 
+      if(jsonMatch) try{showResult(JSON.parse(jsonMatch[0]))}catch(e){}
+    } else {
+      msgs.push({role:"ai",text:rawText}); renderMessages();
+      if(questionCount<3) setQuickReplies(["Yes, a lot","Sometimes","Not really","It's complicated"]);
+    }
+  }catch(e){ isTyping=false; msgs.push({role:"ai",text:"I'm still here with you. 💙 Could you tell me a bit more?"}); renderMessages(); }
+  document.getElementById("send-btn").disabled=false;
+}
+
+function showResult(data){
+  currentAssessmentData = data; // Save for PDF export
+  const color=data.risk_level==="high"?"var(--danger)":data.risk_level==="moderate"?"var(--warn)":"var(--success)";
+  const dash=2*Math.PI*50 * (1 - (data.depression_score||5)/10);
+  const section=document.getElementById("result-section"); section.style.display="block"; document.getElementById("assess-chat-box").style.display="none"; 
+  
+  const recList = (data.recommendations||["Talk to a trusted friend or family member"]).map(r => `<li style="margin-bottom:0.4rem;">${r}</li>`).join("");
+
+  section.innerHTML=`
+    <div class="result-card" style="background:var(--glass-bg); backdrop-filter:blur(16px); border:1px solid var(--glass-border); border-radius:20px;">
+      <h3 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:0.5rem;text-shadow:0 2px 10px rgba(0,0,0,0.5)">Assessment Complete 💙</h3>
+      <p style="color:var(--text2);font-size:1rem;margin-bottom:2rem; max-width:650px; margin-left:auto; margin-right:auto; line-height:1.6;">${data.clinical_summary || data.summary || "Thank you for sharing."}</p>
+      
+      <div class="risk-ring">
+        <svg width="140" height="140" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="${color}" stroke-width="8" stroke-dasharray="${2*Math.PI*50}" stroke-dashoffset="${dash}" stroke-linecap="round" style="transition:stroke-dashoffset 1.5s ease; filter:drop-shadow(0 0 10px ${color})"/>
+        </svg>
+        <div class="risk-label"><div class="risk-score" style="color:${color};text-shadow:0 0 15px ${color}">${data.depression_score||5}/10</div></div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="riskRadarChart"></canvas>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-item"><div class="insight-label">Primary Concern</div><div class="insight-val" style="font-size:1.1rem; color:white;">${(data.primary_concerns||[]).join(", ")}</div></div>
+        <div class="insight-item">
+          <div class="insight-label">Action Plan</div>
+          <div class="insight-val" style="font-size:1rem; color:var(--accent2)">
+            <ul style="padding-left:1.2rem; margin-top:0.5rem; color:white; line-height:1.5;">
+              ${recList}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:2rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <button class="btn-primary" onclick="showPage('doctors')">Find a Doctor</button>
+        <button class="btn-ghost" onclick="downloadPDF()">📄 Download Report</button>
+        <button class="btn-ghost" onclick="resetAssessment()">↻ Retest</button>
+      </div>
+    </div>
+  `;
+
+  // Draw Chart.js Radar
+  const ctx = document.getElementById('riskRadarChart').getContext('2d');
+  myRadarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Depression', 'Anxiety', 'Isolation', 'Stress', 'Burnout'],
+      datasets: [{
+        label: 'Risk Profile',
+        data: [
+          data.depression_score || 5, 
+          data.anxiety_score || 5, 
+          data.isolation_score || 5, 
+          data.stress_score || 5, 
+          data.burnout_score || 5
+        ],
+        backgroundColor: 'rgba(45, 212, 191, 0.2)',
+        borderColor: '#2dd4bf',
+        pointBackgroundColor: '#a78bfa',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: '#2dd4bf'
+      }]
+    },
+    options: {
+      animation: false, // Turn off animation so PDF capture is instant
+      responsive: true,
+      scales: {
+        r: {
+          angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+          pointLabels: { color: '#cbd5e1', font: { family: "'DM Sans', sans-serif", size: 12 } },
+          ticks: { display: false, min: 0, max: 10 }
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+// ─── PDF EXPORT LOGIC (WHITE-LABEL MEDICAL REPORT) ───
+window.downloadPDF = function() {
+  const data = currentAssessmentData;
+  if(!data) return;
+
+  // Grab the radar chart as an image
+  const chartCanvas = document.getElementById('riskRadarChart');
+  const chartImg = chartCanvas.toDataURL('image/png');
+
+  // Build a completely clean, white, printable HTML template
+  const printHTML = `
+    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; padding: 40px; background: #fff;">
+      <div style="border-bottom: 2px solid #7c6ee6; padding-bottom: 20px; margin-bottom: 30px;">
+        <h1 style="color: #111827; margin: 0 0 10px 0;">MindShield Clinical Report</h1>
+        <p style="color: #64748b; margin: 0;">Date: ${new Date().toLocaleDateString()}</p>
+        <p style="color: #64748b; margin: 0;">Confidential AI-Assisted Triage</p>
+      </div>
+
+      <h2 style="color: #111827; margin-top: 0;">Clinical Summary</h2>
+      <p style="line-height: 1.6; color: #333;">${data.clinical_summary || data.summary}</p>
+
+      <h3 style="color: #111827; margin-top: 25px;">Key Risk Factors</h3>
+      <ul style="line-height: 1.6; color: #333;">
+        ${(data.key_factors || data.primary_concerns || []).map(f => `<li>${f}</li>`).join('')}
+      </ul>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 30px;">
+        <div style="width: 45%;">
+          <h3 style="color: #111827;">Risk Metrics (out of 10)</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <tr style="border-bottom: 1px solid #eee;"><td style="padding: 8px 0;">Depression</td><td style="text-align: right; font-weight: bold;">${data.depression_score || 5}</td></tr>
+            <tr style="border-bottom: 1px solid #eee;"><td style="padding: 8px 0;">Anxiety</td><td style="text-align: right; font-weight: bold;">${data.anxiety_score || 5}</td></tr>
+            <tr style="border-bottom: 1px solid #eee;"><td style="padding: 8px 0;">Stress</td><td style="text-align: right; font-weight: bold;">${data.stress_score || 5}</td></tr>
+            <tr style="border-bottom: 1px solid #eee;"><td style="padding: 8px 0;">Burnout</td><td style="text-align: right; font-weight: bold;">${data.burnout_score || 5}</td></tr>
+          </table>
+        </div>
+        <div style="width: 50%; text-align: center; display: flex; align-items: center; justify-content: center;">
+          <img src="${chartImg}" style="width: 100%; max-width: 250px;" />
+        </div>
+      </div>
+
+      <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin-top: 30px;">
+        <h3 style="color: #111827; margin-top: 0;">Recommended Action Plan</h3>
+        <ul style="line-height: 1.6; margin-bottom: 0; color: #333;">
+          ${(data.recommendations || []).map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+      <p style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 40px;">This report is generated by MindShield AI and is intended for informational purposes. It does not replace a formal psychiatric diagnosis.</p>
+    </div>
+  `;
+
+  // Use html2pdf to process the hidden clean HTML
+  const opt = {
+    margin:       0.5,
+    filename:     'MindShield_Clinical_Report.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = printHTML;
+  html2pdf().set(opt).from(tempDiv).save();
+};
+
+// ─── AGENT 2: FRIENDLY ARIA (VOICE & TEXT) ───
+let voiceMsgs=[]; let isListening=false; let recognition=null;
+
+function initVoice(){ addVoiceMsg("aria","Hi there 🌸 I'm Aria. I'm here with you. You don't have to be okay right now. Just tap the orb to talk, or use the text box below."); }
+
+function addVoiceMsg(from,text){
+  voiceMsgs.push({from,text}); const c=document.getElementById("voice-messages");
+  const indicator = document.getElementById("aria-typing-indicator"); if(indicator) indicator.remove();
+  c.insertAdjacentHTML('beforeend', `<div class="msg ${from==="aria"?"ai":"user"}" style="margin-bottom:0.7rem"><div class="msg-bubble">${text}</div></div>`);
+  c.scrollTop=c.scrollHeight;
+}
+
+function showAriaTyping(){
+  const c=document.getElementById("voice-messages");
+  c.insertAdjacentHTML('beforeend', `<div class="msg ai" id="aria-typing-indicator" style="margin-bottom:0.7rem"><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`);
+  c.scrollTop=c.scrollHeight;
+}
+
+function speak(text){
+  if(!window.speechSynthesis) return; window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(text); utt.rate=0.88; utt.pitch=1.1; utt.volume=0.95;
+  const voices=speechSynthesis.getVoices(); utt.voice=voices.find(v=>/female|woman|girl/i.test(v.name)) || voices[0];
+  speechSynthesis.speak(utt);
+}
+
+async function toggleVoice(){
+  const orb=document.getElementById("voice-orb"); const status=document.getElementById("voice-status");
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  if(isListening){ recognition?.stop(); isListening=false; orb.classList.remove("listening"); status.textContent="Tap Aria to start talking"; return; }
+  const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SpeechRec) return;
+  recognition=new SpeechRec(); recognition.lang="en-IN"; recognition.continuous=false; recognition.interimResults=false;
+  recognition.onstart=()=>{ isListening=true; orb.classList.add("listening"); status.textContent="Aria is listening... 🌸"; };
+  recognition.onresult=(e)=>{
+    const transcript=e.results[0][0].transcript; if(!transcript.trim()) return; 
+    addVoiceMsg("user",transcript); isListening=false; orb.classList.remove("listening");
+    status.textContent="Aria is thinking..."; showAriaTyping(); ariaChat(transcript);
+  };
+  recognition.onerror=(e)=>{ isListening=false; orb.classList.remove("listening"); status.textContent=e.error==='not-allowed'?"Mic blocked! Allow in URL bar.":"Couldn't hear you — tap and try again"; };
+  recognition.onend=()=>{ if(isListening){ isListening=false; orb.classList.remove("listening"); status.textContent="Tap Aria to keep talking"; } };
+  try{ recognition.start(); }catch(err){ isListening=false; orb.classList.remove("listening"); }
+}
+
+function sendAriaText(){
+  const inp = document.getElementById("aria-text-input"); const text = inp.value.trim(); if(!text) return; 
+  inp.value = ""; addVoiceMsg("user", text); document.getElementById("voice-status").textContent = "Aria is typing..."; showAriaTyping(); ariaChat(text); 
+}
+
+async function ariaChat(userText){
+  try{
+    const resp=await fetch("/api/chat",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        system:`You are Aria, a super friendly, non-judgmental friend. Never act clinical. Be incredibly warm. Offer comforts like sipping water. Suggest "Worry Pop" or "Box Breathing" if they seem stressed. Crisis line: 9152987821.`,
+        messages:[{role:"user",content:userText}]
+      })
+    });
+    const data=await resp.json(); addVoiceMsg("aria", data.reply || "I hear you. I'm right here with you. 💙");
+    document.getElementById("voice-status").textContent="Tap Aria to keep talking"; speak(data.reply);
+  }catch{ addVoiceMsg("aria","I'm here with you. You're not alone in this. 💙"); speak("I'm here with you. You're not alone in this."); }
+}
+async function ariaSpeak(type){ const scripts={ breathing:"Let's breathe together 🌊 Breathe in slowly for 4... out for 4.", grounding:"Let's ground you 🌿 Name 5 things you can see." }; addVoiceMsg("aria",scripts[type]); speak(scripts[type]); }
+
+// ─── GAMES CONTROLLER ───
+function startGame(type){
+  document.getElementById("game-menu").style.display="none"; const area=document.getElementById("game-active-area"); area.style.display="block";
+  if(type==="breathing") startBreathing(area); else if(type==="memory") startMemory(area); else if(type==="grounding") startGrounding(area);
+  else if(type==="chat") startEmotionChat(area); else if(type==="worrypop") startWorryPop(area); else if(type==="gratitude") startGratitude(area);
+  else if(type==="emdr") startEyeMovement(area);
+}
+function backToGames(){ document.getElementById("game-menu").style.display="grid"; document.getElementById("game-active-area").style.display="none"; document.getElementById("game-active-area").innerHTML=""; }
+
+// Box Breathing 
+function startBreathing(area){
+  const phases=["Breathe In","Hold","Breathe Out","Hold"];
+  const offsets=[0, 0, 565.48, 565.48]; 
+  const colors=["var(--teal)", "var(--accent2)", "var(--teal)", "var(--accent2)"];
+  let phase=0; let round=1;
+
+  area.innerHTML=`
+    <div class="game-active" style="display:flex; flex-direction:column; align-items:center; background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;">
+      <button class="btn-ghost" style="padding:0.4rem 1rem;font-size:0.8rem;margin-bottom:1rem; align-self:flex-start;" onclick="backToGames()">← Back</button>
+      <h2 style="font-size:1.8rem; margin-bottom:0.5rem">🌊 Box Breathing</h2>
+      <p style="text-align:center;color:var(--text2);font-size:0.9rem;margin-bottom:2.5rem">4-4-4-4 pattern · Follow the animated ring</p>
+
+      <div style="position:relative; width:220px; height:220px; display:flex; align-items:center; justify-content:center; margin-bottom:2.5rem;">
+        <svg width="220" height="220" style="position:absolute; inset:0; transform:rotate(-90deg); filter:drop-shadow(0 0 15px rgba(45,212,191,0.2));">
+          <circle cx="110" cy="110" r="90" fill="rgba(0,0,0,0.3)" stroke="rgba(255,255,255,0.05)" stroke-width="12"/>
+          <circle id="breath-ring" cx="110" cy="110" r="90" fill="none" stroke="var(--teal)" stroke-width="12" stroke-dasharray="565.48" stroke-dashoffset="565.48" stroke-linecap="round" style="transition: stroke-dashoffset 4s linear, stroke 1s ease;"/>
+        </svg>
+        <div id="breath-text" style="font-size:1.6rem; font-weight:800; font-family:'Syne',sans-serif; text-align:center; transition:all 0.8s ease; text-shadow:0 2px 10px rgba(0,0,0,0.5);">Ready</div>
+      </div>
+      <div style="text-align:center;color:var(--text3);font-size:1rem;font-weight:600; padding:0.5rem 1.5rem; background:rgba(0,0,0,0.4); border-radius:20px; border:1px solid var(--glass-border)" id="breath-count">Round 1</div>
+    </div>
+  `;
+
+  setTimeout(function nextPhase(){
+    const ring=document.getElementById("breath-ring"); const text=document.getElementById("breath-text");
+    if(!ring || !text) return; 
+    const p=phases[phase%4]; text.textContent=p;
+    ring.style.strokeDashoffset = offsets[phase%4];
+    ring.style.stroke = colors[phase%4];
+    if(p === "Breathe In") text.style.transform = "scale(1.2)";
+    else if(p === "Breathe Out") text.style.transform = "scale(0.85)";
+    else text.style.transform = "scale(1)";
+
+    if(phase%4===0&&phase>0) round++;
+    document.getElementById("breath-count").textContent=`Round ${round}`;
+    phase++; setTimeout(nextPhase, 4000);
+  }, 500);
+}
+
+// Memory Match
+function startMemory(area){
+  const emojis=["🌸","💙","🌊","🌿","⭐","🦋","🌙","💎"]; const cards=[...emojis,...emojis].sort(()=>Math.random()-0.5);
+  window.memCards=cards; window.memFlipped=[]; window.memMatched=new Set(); window.memWait=false;
+  area.innerHTML=`<div class="game-active" style="background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;">
+  <button class="btn-ghost" style="padding:0.4rem 1rem;font-size:0.8rem;margin-bottom:1rem" onclick="backToGames()">← Back</button>
+  <h2>🧩 Memory Match</h2><p style="text-align:center;color:var(--text2);font-size:0.85rem;margin-bottom:1rem">Engage your focus · anxiety can't live here</p>
+  <div class="memory-grid">${cards.map((c,i)=>`<div class="memory-card" id="mc${i}" onclick="flipCard(${i})"><div class="memory-inner"><div class="memory-front"></div><div class="memory-back">${c}</div></div></div>`).join("")}</div>
+  <div style="text-align:center;color:var(--text2);font-weight:600;" id="mem-msg">Find the pairs</div></div>`;
+}
+window.flipCard=function(i){
+  if(window.memWait||window.memMatched.has(i)||window.memFlipped.includes(i)) return;
+  const card=document.getElementById("mc"+i); card.classList.add("flipped"); window.memFlipped.push(i);
+  if(window.memFlipped.length===2){
+    window.memWait=true; const [a,b]=window.memFlipped;
+    if(window.memCards[a]===window.memCards[b]){
+      window.memMatched.add(a); window.memMatched.add(b);
+      document.getElementById("mc"+a).classList.add("matched"); document.getElementById("mc"+b).classList.add("matched");
+      window.memFlipped=[]; window.memWait=false;
+      if(window.memMatched.size===16) document.getElementById("mem-msg").textContent="🎉 Amazing focus!";
+    } else { setTimeout(()=>{ document.getElementById("mc"+a).classList.remove("flipped"); document.getElementById("mc"+b).classList.remove("flipped"); window.memFlipped=[]; window.memWait=false; }, 900); }
+  }
+};
+
+// Grounding
+function startGrounding(area){
+  const steps=[ {n:5,sense:"see",icon:"👁️"}, {n:4,sense:"touch",icon:"🤲"}, {n:3,sense:"hear",icon:"👂"}, {n:2,sense:"smell",icon:"👃"}, {n:1,sense:"taste",icon:"👅"} ]; let step=0;
+  area.innerHTML=`<div class="game-active" style="background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;"><button class="btn-ghost" style="padding:0.4rem 1rem;font-size:0.8rem;margin-bottom:1rem" onclick="backToGames()">← Back</button><h2>🌿 5-4-3-2-1 Grounding</h2><div id="ground-content"></div></div>`;
+  function renderStep(){
+    const gc=area.querySelector("#ground-content");
+    if(step>=steps.length) return gc.innerHTML=`<p style="text-align:center;font-size:1.2rem;padding:2rem;font-weight:600;">🌿 You're grounded. 💙</p>`;
+    const s=steps[step];
+    gc.innerHTML=`<div style="text-align:center;padding:1rem"><div style="font-size:4rem;margin-bottom:1rem;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5))">${s.icon}</div><div style="font-size:3.5rem;color:var(--teal);font-weight:800;font-family:'Syne',sans-serif;text-shadow:0 0 20px rgba(45,212,191,0.5)">${s.n}</div><p style="margin:1.5rem 0;font-size:1.1rem;font-weight:500;">Notice ${s.n} things you can ${s.sense}.</p><button class="btn-primary" style="padding:0.8rem 2.5rem;font-size:1rem;" onclick="groundNext()">Done ✓</button></div>`;
+  }
+  window.groundNext=function(){step++;renderStep();}; renderStep();
+}
+
+// Emotion Chat 
+async function startEmotionChat(area){
+  let emoHistory=[];
+  area.innerHTML=`
+    <div class="game-active" style="background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;">
+      <button class="btn-ghost" style="padding:0.4rem 1rem;font-size:0.8rem;margin-bottom:1rem" onclick="backToGames()">← Back</button>
+      <h2>💬 Emotion Naming</h2>
+      <p style="text-align:center;color:var(--text2);font-size:0.85rem;margin-bottom:1rem">Naming emotions reduces their intensity</p>
+      <div id="emo-chat" style="background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);border-radius:14px;padding:1rem;min-height:250px;max-height:300px;overflow-y:auto;margin-bottom:1rem;display:flex;flex-direction:column;"></div>
+      <div style="display:flex;gap:0.5rem">
+        <input type="text" id="emo-input" style="flex:1;background:rgba(0,0,0,0.5);border:1px solid var(--glass-border);border-radius:10px;padding:0.8rem 1rem;color:white;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--glass-border)'" onkeydown="if(event.key==='Enter') sendEmo()">
+        <button class="send-btn" style="width:45px;height:45px;border-radius:10px;" onclick="sendEmo()">➤</button>
+      </div>
+    </div>
+  `;
+  const c = document.getElementById("emo-chat");
+  c.innerHTML=`<div class="msg ai" style="align-self:flex-start;max-width:80%;"><div class="msg-bubble" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:4px 16px 16px 16px;padding:0.8rem 1rem;">Tell me — what emotion is sitting with you right now?</div></div>`;
+  
+  window.sendEmo = async function(){
+    const inp=document.getElementById("emo-input"); const text=inp.value.trim(); if(!text) return; inp.value="";
+    c.innerHTML+=`<div class="msg user" style="align-self:flex-end;max-width:80%;margin-top:0.5rem;"><div class="msg-bubble" style="background:linear-gradient(135deg,var(--accent),#6d28d9);border-radius:16px 4px 16px 16px;padding:0.8rem 1rem;border:1px solid rgba(124,110,230,0.4);">${text}</div></div>`;
+    c.scrollTop=c.scrollHeight;
+    emoHistory.push({role:"user",content:text});
+
+    const typingId = "emo-typing-" + Date.now();
+    c.innerHTML+=`<div id="${typingId}" class="msg ai" style="align-self:flex-start;max-width:80%;margin-top:0.5rem;"><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+    c.scrollTop=c.scrollHeight;
+
+    try{
+      const resp = await fetch("/api/chat",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          system:"You help users name and understand their emotions. Validate them, help name them precisely. Note that naming emotions reduces their power. Keep responses warm, brief (1-3 sentences).",
+          messages:emoHistory
+        })
+      });
+      const data = await resp.json();
+      document.getElementById(typingId).remove();
+      const reply = data.reply || "That makes complete sense. You're doing really well just by noticing it.";
+      emoHistory.push({role:"assistant",content:reply});
+      c.innerHTML+=`<div class="msg ai" style="align-self:flex-start;max-width:80%;margin-top:0.5rem;"><div class="msg-bubble" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:4px 16px 16px 16px;padding:0.8rem 1rem;">${reply}</div></div>`;
+      c.scrollTop=c.scrollHeight;
+    }catch{
+       document.getElementById(typingId).remove();
+       c.innerHTML+=`<div class="msg ai" style="align-self:flex-start;max-width:80%;margin-top:0.5rem;"><div class="msg-bubble" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:4px 16px 16px 16px;padding:0.8rem 1rem;">That feeling is valid. By naming it, you reduce its power. 💙</div></div>`;
+       c.scrollTop=c.scrollHeight;
+    }
+  };
+}
+
+// Worry Pop 
+function startWorryPop(area){
+  area.innerHTML=`<div class="game-active" style="position:relative; overflow:hidden; min-height:450px; background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;">
+  <button class="btn-ghost" style="position:relative;z-index:10;padding:0.4rem 1rem;font-size:0.8rem;margin-bottom:1rem" onclick="backToGames()">← Back</button>
+  <h2 style="position:relative;z-index:10">🫧 Worry Pop</h2>
+  <div style="position:relative;z-index:10;display:flex;gap:0.5rem;justify-content:center"><input type="text" id="worry-input" placeholder="What's bothering you?" style="width:70%;background:rgba(0,0,0,0.5);border:1px solid var(--glass-border);border-radius:10px;padding:0.8rem 1rem;color:white;outline:none;" onfocus="this.style.borderColor='var(--success)'" onblur="this.style.borderColor='var(--glass-border)'" onkeydown="if(event.key==='Enter') spawnBubble()"><button class="btn-primary" style="background:linear-gradient(135deg, var(--success), #059669);border-radius:10px;" onclick="spawnBubble()">Trap it</button></div>
+  <div id="bubble-container" style="position:absolute;inset:0;top:130px;pointer-events:none"></div></div>`;
+  
+  if(!document.getElementById("bubble-styles")){
+    const style = document.createElement("style"); style.id="bubble-styles";
+    style.innerHTML = `
+      @keyframes floatUp { 0% { transform: translateY(100px); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(-400px); opacity: 0; } }
+      .worry-bubble-wrapper { position: absolute; pointer-events: none; animation: floatUp 8s linear forwards; }
+      .worry-bubble { width: 100%; height: 100%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), rgba(45,212,191,0.25)); border: 1px solid rgba(45,212,191,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem; cursor: pointer; pointer-events: auto; backdrop-filter: blur(4px); box-shadow: inset 0 0 20px rgba(255,255,255,0.1), 0 8px 25px rgba(0,0,0,0.3); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s, background 0.2s; }
+      .worry-bubble:hover { border-color: var(--danger); background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), rgba(239,68,68,0.25)); transform: scale(1.1); box-shadow: inset 0 0 20px rgba(255,255,255,0.1), 0 8px 25px rgba(239,68,68,0.4); }
+      .pop-anim { animation: bubblePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important; pointer-events: none; }
+      @keyframes bubblePop { 0% { transform: scale(1.1); opacity:1; filter:brightness(1); } 50% { transform: scale(1.5); filter:brightness(1.5); opacity:0.8; } 100% { transform: scale(2.5); opacity:0; filter:brightness(2) blur(4px); } }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  window.spawnBubble=function(){
+    const text=document.getElementById("worry-input").value.trim(); if(!text) return; document.getElementById("worry-input").value="";
+    const container=document.getElementById("bubble-container"); 
+    const wrapper = document.createElement("div"); wrapper.className = "worry-bubble-wrapper";
+    const size=Math.floor(Math.random()*50)+90; wrapper.style.width=size+"px"; wrapper.style.height=size+"px"; 
+    wrapper.style.left=(Math.floor(Math.random()*70)+10)+"%"; wrapper.style.bottom="-50px";
+    const bubble=document.createElement("div"); bubble.className="worry-bubble";
+    bubble.innerHTML=`<span style="font-size:0.85rem;font-weight:600;color:white;pointer-events:none;text-shadow:0 2px 4px rgba(0,0,0,0.5)">${text}</span>`;
+    
+    bubble.onclick=function(){ 
+      bubble.classList.add("pop-anim"); 
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + 0.15);
+      } catch(e){}
+      setTimeout(()=>wrapper.remove(), 300); 
+    };
+    wrapper.appendChild(bubble); setTimeout(()=>{ if(container.contains(wrapper)) wrapper.remove(); }, 7900); container.appendChild(wrapper);
+  };
+}
+
+// Gratitude Jar (LOCALSTORAGE MEMORY + DELETE FUNCTION)
+function startGratitude(area){
+  area.innerHTML=`<div class="game-active" style="background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;"><button class="btn-ghost" style="padding:0.4rem 1rem;font-size:0.8rem;margin-bottom:1rem" onclick="backToGames()">← Back</button>
+  <h2>🫙 The Gratitude Jar</h2><div style="display:flex;gap:0.5rem;justify-content:center;margin-bottom:2rem"><input type="text" id="grat-input" placeholder="I am grateful for..." style="width:70%;background:rgba(0,0,0,0.5);border:1px solid var(--glass-border);border-radius:10px;padding:0.8rem 1rem;color:white;outline:none;" onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--glass-border)'" onkeydown="if(event.key==='Enter') addGrat()"><button class="btn-primary" style="background:linear-gradient(135deg, var(--amber), #d97706);border-radius:10px;" onclick="addGrat()">Add</button></div>
+  <div id="jar-container" style="min-height:250px;background:rgba(0,0,0,0.3);border:2px dashed rgba(255,255,255,0.15);border-radius:20px;padding:1.5rem;display:flex;flex-wrap:wrap;gap:1rem;align-content:flex-start;box-shadow:inset 0 0 20px rgba(0,0,0,0.5)">
+    <div style="width:100%; text-align:center; color:var(--text3); font-size:0.85rem; margin-top:2rem" id="jar-empty">Your jar is empty. Add a thought above!</div>
+  </div></div>`;
+  
+  const colors = ["rgba(45,212,191,0.2)", "rgba(124,110,230,0.2)", "rgba(244,114,182,0.2)", "rgba(251,191,36,0.2)"];
+  const borders = ["var(--teal)", "var(--accent2)", "var(--rose)", "var(--amber)"];
+
+  function createNoteElement(text, animate) {
+    document.getElementById("jar-empty")?.remove();
+    const container = document.getElementById("jar-container");
+    const note = document.createElement("div");
+    const r = Math.floor(Math.random() * colors.length);
+    const rotation = (Math.random() * 8) - 4; 
+    
+    // Escape quotes so we can pass it to the onclick handler safely
+    const safeText = text.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+    note.style.cssText = `position:relative; background:${colors[r]};backdrop-filter:blur(5px);border:1px solid ${borders[r]};padding:1rem 2rem 1rem 1.4rem;border-radius:12px;font-size:0.9rem;font-weight:500;color:white;box-shadow:0 4px 15px rgba(0,0,0,0.2);transform:rotate(${rotation}deg)${animate ? ' scale(0.8)' : ''};opacity:${animate ? '0' : '1'}; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);`;
+    
+    // Add the delete button (X) inside the note
+    note.innerHTML = `
+      <span style="position:absolute; top:8px; right:8px; cursor:pointer; font-size:1rem; line-height:1; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'; this.style.color='var(--danger)'" onmouseout="this.style.opacity='0.5'; this.style.color='white'" onclick="deleteGrat(this, '${safeText}')">✖</span>
+      ${text}
+    `;
+    
+    container.appendChild(note);
+    if(animate){ setTimeout(() => { note.style.transform = `rotate(${rotation}deg) scale(1)`; note.style.opacity = "1"; }, 50); }
+  }
+
+  // Load from LocalStorage
+  const savedNotes = JSON.parse(localStorage.getItem('mindshield_gratitude') || '[]');
+  if(savedNotes.length > 0) document.getElementById("jar-empty")?.remove();
+  savedNotes.forEach(noteText => createNoteElement(noteText, false));
+
+  window.addGrat=function(){
+    const text=document.getElementById("grat-input").value.trim(); if(!text) return; document.getElementById("grat-input").value="";
+    const notes = JSON.parse(localStorage.getItem('mindshield_gratitude') || '[]');
+    notes.push(text); localStorage.setItem('mindshield_gratitude', JSON.stringify(notes));
+    createNoteElement(text, true);
+  };
+
+  window.deleteGrat=function(btnElement, textToRemove){
+    const noteElement = btnElement.parentElement;
+    
+    // Remove from LocalStorage
+    let notes = JSON.parse(localStorage.getItem('mindshield_gratitude') || '[]');
+    const index = notes.indexOf(textToRemove);
+    if(index > -1) {
+      notes.splice(index, 1);
+      localStorage.setItem('mindshield_gratitude', JSON.stringify(notes));
+    }
+
+    // Animate out and remove from DOM
+    noteElement.style.transform = 'scale(0) rotate(10deg)';
+    noteElement.style.opacity = '0';
+    
+    setTimeout(() => {
+      noteElement.remove();
+      const container = document.getElementById("jar-container");
+      // Check if it's completely empty now
+      if(container.children.length === 0 || (container.children.length === 1 && container.children[0].id === 'jar-empty')){
+        container.innerHTML = '<div style="width:100%; text-align:center; color:var(--text3); font-size:0.85rem; margin-top:2rem" id="jar-empty">Your jar is empty. Add a thought above!</div>';
+      }
+    }, 400);
+  };
+}
+
+// EMDR
+function startEyeMovement(area){
+  area.innerHTML=`<div class="game-active" style="background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:20px;"><button class="btn-ghost" style="padding:0.4rem 1rem;font-size:0.8rem;margin-bottom:1rem" onclick="backToGames()">← Back</button>
+  <h2>👀 Bilateral Stimulation</h2><p style="text-align:center;color:var(--text2);margin-bottom:2.5rem;font-size:0.95rem;">Follow the glowing dot with your eyes without moving your head.</p>
+  <div style="position:relative;width:100%;height:80px;background:rgba(0,0,0,0.5);border-radius:40px;border:1px solid var(--glass-border);box-shadow:inset 0 0 25px rgba(0,0,0,0.6);overflow:hidden;display:flex;align-items:center;padding:0 20px;container-type:inline-size"><div id="emdr-dot" style="width:40px;height:40px;border-radius:50%;background:var(--accent2);box-shadow:0 0 25px var(--accent2), 0 0 10px white;animation:moveLeftRight 3s ease-in-out infinite alternate"></div></div>
+  <div style="text-align:center;margin-top:2.5rem;display:flex;gap:1rem;justify-content:center"><button class="btn-ghost" style="padding:0.6rem 1.5rem;border-radius:20px;" onclick="adjEMDR(0.5)">🐢 Slower</button> <button class="btn-ghost" style="padding:0.6rem 1.5rem;border-radius:20px;" onclick="adjEMDR(-0.5)">🐇 Faster</button></div></div>`;
+  
+  if(!document.getElementById("emdr-styles")){ const style=document.createElement("style"); style.id="emdr-styles"; style.innerHTML=`@keyframes moveLeftRight { 0% { transform: translateX(0); } 100% { transform: translateX(calc(100cqw - 80px)); } }`; document.head.appendChild(style); }
+  
+  window.emdrSpeed=3; 
+  window.adjEMDR=function(c){ 
+    window.emdrSpeed+=c; 
+    if(window.emdrSpeed<0.5) window.emdrSpeed=0.5; 
+    if(window.emdrSpeed>6) window.emdrSpeed=6; 
+    const dot = document.getElementById("emdr-dot");
+    dot.style.animation = 'none'; void dot.offsetWidth; 
+    dot.style.animation = `moveLeftRight ${window.emdrSpeed}s ease-in-out infinite alternate`;
+  };
+}
+
+if(window.speechSynthesis){ speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices(); }
+</script>
+</body>
+</html>

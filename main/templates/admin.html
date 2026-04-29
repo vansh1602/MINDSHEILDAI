@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>MindShield Admin Center</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=DM+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: #060912;
+      color: #f1f5f9;
+      font-family: 'DM Sans', sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      color: #7c6ee6;
+      margin-bottom: 0.2rem;
+    }
+
+    /* Login Screen Styles */
+    .login-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(124, 110, 230, 0.1) 0%, #060912 100%);
+    }
+
+    .login-box {
+      background: rgba(17, 24, 39, 0.6);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 3rem;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      color: white;
+      font-family: 'DM Sans';
+      outline: none;
+      transition: 0.3s;
+    }
+
+    .login-input:focus {
+      border-color: #2dd4bf;
+      box-shadow: 0 0 15px rgba(45, 212, 191, 0.2);
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #7c6ee6, #6d28d9);
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: 0.3s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(124, 110, 230, 0.4);
+    }
+
+    /* Dashboard Styles */
+    .dashboard-wrapper {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 1rem;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .kpi-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .kpi {
+      flex: 1;
+      min-width: 250px;
+      background: linear-gradient(135deg, rgba(124, 110, 230, 0.15), rgba(45, 212, 191, 0.15));
+      padding: 1.5rem;
+      border-radius: 16px;
+      border: 1px solid rgba(124, 110, 230, 0.3);
+    }
+
+    .kpi h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    .kpi h2 {
+      margin: 0;
+      font-size: 2.5rem;
+      font-family: 'Syne', sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+
+  {% if not logged_in %}
+  <div class="login-wrapper">
+    <div class="login-box">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+      <h1>MindShield <span>Admin</span></h1>
+      <p style="color:#94a3b8; font-size:0.9rem;">Restricted Access Area</p>
+
+      <form action="/admin/login" method="POST">
+        <input type="password" name="password" class="login-input" placeholder="Enter System Password" required>
+        <button type="submit" class="btn">Authenticate</button>
+      </form>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="dashboard-wrapper">
+    <div class="top-bar">
+      <div>
+        <h1>MindShield <span>Admin Center</span></h1>
+        <p style="color:#94a3b8; margin:0;">Live University Health Overview & Predictive Analytics</p>
+      </div>
+      <a href="/admin/logout" class="logout-btn">Log Out ✖</a>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <h3>Total Assessments</h3>
+        <h2 id="kpi-total">--</h2>
+      </div>
+      <div class="kpi">
+        <h3>High Risk Alerts</h3>
+        <h2 id="kpi-risk" style="color:#ef4444; text-shadow:0 0 15px rgba(239,68,68,0.4);">--</h2>
+      </div>
+      <div class="kpi">
+        <h3>Avg. Anxiety Score</h3>
+        <h2 id="kpi-anx" style="color:#fbbf24">--</h2>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin-top:0">Aggregate Stress vs Burnout Distribution</h3>
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    Chart.defaults.color = '#cbd5e1';
+    Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+    // Fetch Live Data from Backend!
+    fetch('/api/analytics')
+      .then(response => response.json())
+      .then(data => {
+        // Update KPIs
+        document.getElementById('kpi-total').innerText = data.total_assessments;
+        document.getElementById('kpi-risk').innerText = data.high_risk_alerts;
+
+        let avgAnx = 0;
+        if (data.anxiety_scores.length > 0) {
+          avgAnx = (data.anxiety_scores.reduce((a, b) => a + b, 0) / data.anxiety_scores.length).toFixed(1);
+        }
+        document.getElementById('kpi-anx').innerText = avgAnx + "/10";
+
+        // Generate labels based on number of assessments
+        const labels = Array.from({ length: data.anxiety_scores.length }, (_, i) => `Assessment ${i + 1}`);
+
+        // Render Real Chart
+        new Chart(document.getElementById('lineChart'), {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              { label: 'Anxiety Score', data: data.anxiety_scores, borderColor: '#7c6ee6', backgroundColor: 'rgba(124,110,230,0.2)', fill: true, tension: 0.4 },
+              { label: 'Burnout Score', data: data.burnout_scores, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4 }
+            ]
+          },
+          options: { responsive: true, scales: { y: { beginAtZero: true, max: 10 } } }
+        });
+      })
+      .catch(err => console.error("Error fetching analytics:", err));
+  </script>
+  {% endif %}
+
+</body>
+
+</html>
