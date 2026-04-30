@@ -1,176 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MindShield Admin Center</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=DM+Sans:wght@400;500;600&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    /* ─── GLOBAL RESET & VARIABLES ─── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #060912;
+      --accent: #7c6ee6; --accent2: #a78bfa;
+      --teal: #2dd4bf; --danger: #ef4444; --amber: #fbbf24;
+      --text: #f1f5f9; --text2: #cbd5e1; --text3: #94a3b8;
+      --glass-bg: rgba(17, 24, 39, 0.55);
+      --glass-border: rgba(255, 255, 255, 0.08);
+    }
     body {
-      background: #060912;
-      color: #f1f5f9;
+      background: var(--bg);
+      color: var(--text);
       font-family: 'DM Sans', sans-serif;
-      margin: 0;
       min-height: 100vh;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
     }
 
-    h1 {
-      font-family: 'Syne', sans-serif;
-      color: #7c6ee6;
-      margin-bottom: 0.2rem;
+    /* ─── BACKGROUND SCENERY ─── */
+    .bg-overlay {
+      position: fixed; inset: 0; z-index: -1;
+      background: radial-gradient(circle at 50% -20%, rgba(124,110,230,0.15) 0%, rgba(6,9,18,1) 70%);
     }
 
-    /* Login Screen Styles */
+    h1, h2, h3 { font-family: 'Syne', sans-serif; }
+    
+    /* ─── LOGIN SCREEN ─── */
     .login-wrapper {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at center, rgba(124, 110, 230, 0.1) 0%, #060912 100%);
+      flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem;
+      animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
-
     .login-box {
-      background: rgba(17, 24, 39, 0.6);
-      backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 3rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 3.5rem 3rem;
       text-align: center;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-      width: 100%;
-      max-width: 400px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      width: 100%; max-width: 420px;
+      position: relative; overflow: hidden;
     }
-
+    .login-box::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--teal));
+    }
+    .login-icon {
+      font-size: 3.5rem; margin-bottom: 1rem;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+    }
+    .login-box h1 { font-size: 2rem; margin-bottom: 0.3rem; letter-spacing: -0.02em; }
+    .login-box h1 span { color: var(--accent); }
+    .login-box p { color: var(--text3); font-size: 0.95rem; margin-bottom: 2.5rem; }
+    
     .login-input {
-      width: 100%;
-      padding: 1rem;
-      margin: 1.5rem 0;
+      width: 100%; padding: 1.1rem 1.2rem; margin-bottom: 1.5rem;
       background: rgba(0, 0, 0, 0.4);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      color: white;
-      font-family: 'DM Sans';
-      outline: none;
-      transition: 0.3s;
+      border-radius: 12px; color: white;
+      font-family: 'DM Sans', sans-serif; font-size: 1rem;
+      outline: none; transition: all 0.3s;
     }
-
     .login-input:focus {
-      border-color: #2dd4bf;
+      border-color: var(--teal);
       box-shadow: 0 0 15px rgba(45, 212, 191, 0.2);
+      background: rgba(0, 0, 0, 0.6);
     }
-
-    .btn {
-      background: linear-gradient(135deg, #7c6ee6, #6d28d9);
-      color: white;
-      border: none;
-      padding: 1rem 2rem;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      transition: 0.3s;
+    .btn-auth {
+      background: linear-gradient(135deg, var(--accent), #6d28d9);
+      color: white; border: none; padding: 1.1rem; border-radius: 12px;
+      font-size: 1rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; width: 100%; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 4px 15px rgba(124, 110, 230, 0.3);
     }
+    .btn-auth:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 25px rgba(124, 110, 230, 0.5); }
+    .btn-auth:active { transform: scale(0.95); }
 
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(124, 110, 230, 0.4);
-    }
-
-    /* Dashboard Styles */
+    /* ─── DASHBOARD ─── */
     .dashboard-wrapper {
-      padding: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
-      width: 100%;
+      padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%;
+      animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
-
     .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 1rem;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 2.5rem; padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--glass-border);
+      flex-wrap: wrap; gap: 1rem;
     }
-
+    .top-bar-left { display: flex; align-items: center; gap: 1rem; }
+    .admin-logo {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; box-shadow: 0 0 20px rgba(45, 212, 191, 0.3);
+    }
+    .top-bar h1 { font-size: 1.8rem; margin: 0 0 0.2rem 0; letter-spacing: -0.02em; }
+    .top-bar p { color: var(--text3); font-size: 0.9rem; margin: 0; }
+    
     .logout-btn {
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #cbd5e1;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      text-decoration: none;
-      font-size: 0.9rem;
+      background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--danger); padding: 0.7rem 1.2rem; border-radius: 10px;
+      cursor: pointer; text-decoration: none; font-size: 0.9rem; font-weight: 600;
+      transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;
     }
+    .logout-btn:hover { background: rgba(239, 68, 68, 0.2); border-color: var(--danger); color: white; box-shadow: 0 0 15px rgba(239,68,68,0.3); }
 
-    .logout-btn:hover {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: #ef4444;
-      color: white;
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;
     }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
+    .kpi-card {
+      background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: 20px;
+      padding: 1.8rem; position: relative; overflow: hidden;
+      transition: all 0.4s;
     }
-
-    .card {
-      background: rgba(17, 24, 39, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 1.5rem;
-      backdrop-filter: blur(10px);
+    .kpi-card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 10px 30px rgba(124, 110, 230, 0.15); }
+    .kpi-card::after {
+      content: ''; position: absolute; top: 0; right: 0; width: 100px; height: 100px;
+      background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+      border-radius: 50%; transform: translate(30%, -30%); pointer-events: none;
     }
+    .kpi-title { font-size: 0.9rem; color: var(--text2); font-weight: 500; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-value { font-size: 3rem; font-family: 'Syne', sans-serif; font-weight: 800; line-height: 1; }
+    
+    .kpi-total .kpi-value { background: linear-gradient(135deg, #f1f5f9, var(--text3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .kpi-risk .kpi-value { color: var(--danger); text-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+    .kpi-anx .kpi-value { color: var(--amber); text-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
 
-    .kpi-row {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
+    .charts-grid {
+      display: grid; grid-template-columns: 1fr; gap: 1.5rem;
     }
-
-    .kpi {
-      flex: 1;
-      min-width: 250px;
-      background: linear-gradient(135deg, rgba(124, 110, 230, 0.15), rgba(45, 212, 191, 0.15));
-      padding: 1.5rem;
-      border-radius: 16px;
-      border: 1px solid rgba(124, 110, 230, 0.3);
+    .chart-card {
+      background: var(--glass-bg); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: 20px;
+      padding: 2rem; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     }
-
-    .kpi h3 {
-      margin: 0 0 0.5rem 0;
-      font-size: 0.9rem;
-      color: #cbd5e1;
-      font-weight: 500;
+    .chart-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;
     }
+    .chart-header h3 { font-size: 1.2rem; font-weight: 700; margin: 0; }
+    .live-badge {
+      display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--teal);
+      padding: 0.3rem 0.8rem; background: rgba(45, 212, 191, 0.1); border: 1px solid rgba(45, 212, 191, 0.2);
+      border-radius: 20px; font-weight: 600;
+    }
+    .dot-pulse { width: 6px; height: 6px; background: var(--teal); border-radius: 50%; animation: pulse 2s infinite; box-shadow: 0 0 8px var(--teal); }
 
-    .kpi h2 {
-      margin: 0;
-      font-size: 2.5rem;
-      font-family: 'Syne', sans-serif;
+    .chart-container { position: relative; height: 400px; width: 100%; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+
+    @media (max-width: 768px) {
+      .top-bar { flex-direction: column; align-items: flex-start; }
+      .logout-btn { align-self: flex-start; }
+      .chart-container { height: 300px; }
+      .kpi-value { font-size: 2.5rem; }
     }
   </style>
 </head>
 
 <body>
+  <div class="bg-overlay"></div>
 
   {% if not logged_in %}
   <div class="login-wrapper">
     <div class="login-box">
-      <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+      <div class="login-icon">🛡️</div>
       <h1>MindShield <span>Admin</span></h1>
-      <p style="color:#94a3b8; font-size:0.9rem;">Restricted Access Area</p>
+      <p>Secure System Analytics Access</p>
 
       <form action="/admin/login" method="POST">
-        <input type="password" name="password" class="login-input" placeholder="Enter System Password" required>
-        <button type="submit" class="btn">Authenticate</button>
+        <input type="password" name="password" class="login-input" placeholder="Enter System Password" required autofocus>
+        <button type="submit" class="btn-auth">Authenticate →</button>
       </form>
     </div>
   </div>
@@ -178,32 +191,43 @@
   {% else %}
   <div class="dashboard-wrapper">
     <div class="top-bar">
-      <div>
-        <h1>MindShield <span>Admin Center</span></h1>
-        <p style="color:#94a3b8; margin:0;">Live University Health Overview & Predictive Analytics</p>
+      <div class="top-bar-left">
+        <div class="admin-logo">📈</div>
+        <div>
+          <h1>MindShield Command Center</h1>
+          <p>Real-time Global Wellness Analytics & Predictive Trends</p>
+        </div>
       </div>
-      <a href="/admin/logout" class="logout-btn">Log Out ✖</a>
+      <a href="/admin/logout" class="logout-btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        Secure Logout
+      </a>
     </div>
 
-    <div class="kpi-row">
-      <div class="kpi">
-        <h3>Total Assessments</h3>
-        <h2 id="kpi-total">--</h2>
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-total">
+        <div class="kpi-title">Total Assessments</div>
+        <div class="kpi-value" id="kpi-total">--</div>
       </div>
-      <div class="kpi">
-        <h3>High Risk Alerts</h3>
-        <h2 id="kpi-risk" style="color:#ef4444; text-shadow:0 0 15px rgba(239,68,68,0.4);">--</h2>
+      <div class="kpi-card kpi-risk">
+        <div class="kpi-title">High Risk Alerts</div>
+        <div class="kpi-value" id="kpi-risk">--</div>
       </div>
-      <div class="kpi">
-        <h3>Avg. Anxiety Score</h3>
-        <h2 id="kpi-anx" style="color:#fbbf24">--</h2>
+      <div class="kpi-card kpi-anx">
+        <div class="kpi-title">Avg. Anxiety Level</div>
+        <div class="kpi-value" id="kpi-anx">--</div>
       </div>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <h3 style="margin-top:0">Aggregate Stress vs Burnout Distribution</h3>
-        <canvas id="lineChart"></canvas>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Stress vs Burnout Trajectory</h3>
+          <div class="live-badge"><div class="dot-pulse"></div> Live Sync</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="lineChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -212,13 +236,13 @@
     Chart.defaults.color = '#cbd5e1';
     Chart.defaults.font.family = "'DM Sans', sans-serif";
 
-    // Fetch Live Data from Backend!
+    // Fetch Live Data from Backend
     fetch('/api/analytics')
       .then(response => response.json())
       .then(data => {
-        // Update KPIs
-        document.getElementById('kpi-total').innerText = data.total_assessments;
-        document.getElementById('kpi-risk').innerText = data.high_risk_alerts;
+        // Update KPIs with counting animation
+        animateValue('kpi-total', 0, data.total_assessments, 1000);
+        animateValue('kpi-risk', 0, data.high_risk_alerts, 1000);
 
         let avgAnx = 0;
         if (data.anxiety_scores.length > 0) {
@@ -226,26 +250,103 @@
         }
         document.getElementById('kpi-anx').innerText = avgAnx + "/10";
 
-        // Generate labels based on number of assessments
-        const labels = Array.from({ length: data.anxiety_scores.length }, (_, i) => `Assessment ${i + 1}`);
+        // Generate labels
+        const labels = Array.from({ length: data.anxiety_scores.length }, (_, i) => `Assmt ${i + 1}`);
 
-        // Render Real Chart
-        new Chart(document.getElementById('lineChart'), {
+        // Setup Gradient for Charts
+        const ctx = document.getElementById('lineChart').getContext('2d');
+        const gradientAnx = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientAnx.addColorStop(0, 'rgba(124,110,230,0.4)');
+        gradientAnx.addColorStop(1, 'rgba(124,110,230,0)');
+
+        const gradientBurn = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientBurn.addColorStop(0, 'rgba(239,68,68,0.3)');
+        gradientBurn.addColorStop(1, 'rgba(239,68,68,0)');
+
+        // Render Premium Chart
+        new Chart(ctx, {
           type: 'line',
           data: {
             labels: labels,
             datasets: [
-              { label: 'Anxiety Score', data: data.anxiety_scores, borderColor: '#7c6ee6', backgroundColor: 'rgba(124,110,230,0.2)', fill: true, tension: 0.4 },
-              { label: 'Burnout Score', data: data.burnout_scores, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4 }
+              { 
+                label: 'Anxiety Score', 
+                data: data.anxiety_scores, 
+                borderColor: '#7c6ee6', 
+                backgroundColor: gradientAnx, 
+                fill: true, 
+                tension: 0.4,
+                borderWidth: 3,
+                pointBackgroundColor: '#060912',
+                pointBorderColor: '#7c6ee6',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              },
+              { 
+                label: 'Burnout Score', 
+                data: data.burnout_scores, 
+                borderColor: '#ef4444', 
+                backgroundColor: gradientBurn, 
+                fill: true, 
+                tension: 0.4,
+                borderWidth: 3,
+                pointBackgroundColor: '#060912',
+                pointBorderColor: '#ef4444',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }
             ]
           },
-          options: { responsive: true, scales: { y: { beginAtZero: true, max: 10 } } }
+          options: { 
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: { 
+              y: { 
+                beginAtZero: true, 
+                max: 10,
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { padding: 10 }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { padding: 10, maxRotation: 45, minRotation: 45 }
+              }
+            },
+            plugins: {
+              legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
+              tooltip: {
+                backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                titleFont: { family: "'Syne'", size: 14 },
+                bodyFont: { family: "'DM Sans'", size: 13 },
+                padding: 12,
+                cornerRadius: 8,
+                borderColor: 'rgba(255,255,255,0.1)',
+                borderWidth: 1
+              }
+            }
+          }
         });
       })
       .catch(err => console.error("Error fetching analytics:", err));
+
+    // Number counting animation
+    function animateValue(id, start, end, duration) {
+      if (start === end) { document.getElementById(id).innerHTML = end; return; }
+      const obj = document.getElementById(id);
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        obj.innerHTML = Math.floor(progress * (end - start) + start);
+        if (progress < 1) window.requestAnimationFrame(step);
+      };
+      window.requestAnimationFrame(step);
+    }
   </script>
   {% endif %}
 
 </body>
-
 </html>

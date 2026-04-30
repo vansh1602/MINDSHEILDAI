@@ -304,6 +304,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('home')">Home</button>
     <button class="nav-tab" onclick="showPage('assess')">Assessment</button>
+    <button class="nav-tab" onclick="showPage('history')">History</button>
     <button class="nav-tab" onclick="showPage('voice')">Aria</button>
     <button class="nav-tab" onclick="showPage('games')">Mind Games</button>
     <button class="nav-tab" onclick="showPage('doctors')">Find Doctor</button>
@@ -318,6 +319,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem
 <div class="mobile-nav">
   <button class="mobile-nav-item active" onclick="showPage('home')"><span class="icon">🏠</span>Home</button>
   <button class="mobile-nav-item" onclick="showPage('assess')"><span class="icon">🩺</span>Assess</button>
+  <button class="mobile-nav-item" onclick="showPage('history')"><span class="icon">📈</span>History</button>
   <button class="mobile-nav-item" onclick="showPage('voice')"><span class="icon">🎙️</span>Aria</button>
   <button class="mobile-nav-item" onclick="showPage('games')"><span class="icon">🧩</span>Games</button>
   <button class="mobile-nav-item" onclick="showPage('doctors')"><span class="icon">👨‍⚕️</span>Doctors</button>
@@ -390,6 +392,24 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem
       </div>
     </div>
     <div id="result-section" style="display:none; width:100%;"></div>
+  </div>
+</div>
+
+<div id="page-history" class="page">
+  <div class="content-wrapper" style="max-width:900px">
+    <div class="section-header">
+      <h2>Your Assessment History</h2>
+      <p>Track your emotional well-being over time. This data is private and stored only on your device.</p>
+    </div>
+    
+    <div style="width:100%; margin-bottom:2rem; background:rgba(17, 24, 39, 0.55); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:1.5rem;">
+      <h3 style="font-family:'Syne',sans-serif; margin-bottom:1rem; font-size:1.1rem;">Trend Analysis</h3>
+      <canvas id="historyChart" style="max-height:300px; width:100%;"></canvas>
+    </div>
+
+    <div id="history-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:1.5rem; width:100%;">
+      <!-- History cards will be injected here -->
+    </div>
   </div>
 </div>
 
@@ -609,10 +629,11 @@ function showPage(p){
   const newPage = document.getElementById("page-"+p);
   newPage.style.animation = 'none'; newPage.offsetHeight; newPage.style.animation = null; 
   newPage.classList.add("active");
-  const tabs=["home","assess","voice","games","doctors","about"];
+  const tabs=["home","assess","history","voice","games","doctors","about"];
   document.querySelectorAll(".nav-tab")[tabs.indexOf(p)]?.classList.add("active");
   document.querySelectorAll(".mobile-nav-item")[tabs.indexOf(p)]?.classList.add("active");
   if(p==="assess"&&msgs.length===0) initAssessment();
+  if(p==="history") renderHistory();
   if(p==="voice"&&voiceMsgs.length===0) initVoice();
 }
 
@@ -732,6 +753,21 @@ function showResult(data){
       </div>
     </div>
   `;
+
+  // Save to LocalStorage History
+  try {
+    const history = JSON.parse(localStorage.getItem("mindshield_history") || "[]");
+    history.push({
+      date: new Date().toISOString(),
+      depression_score: data.depression_score || 5,
+      anxiety_score: data.anxiety_score || 5,
+      risk_level: data.risk_level || "moderate",
+      summary: data.clinical_summary || data.summary || "Completed assessment."
+    });
+    localStorage.setItem("mindshield_history", JSON.stringify(history));
+  } catch (e) {
+    console.error("Failed to save history", e);
+  }
 
   // Draw Chart.js Radar
   const ctx = document.getElementById('riskRadarChart').getContext('2d');
@@ -1171,6 +1207,69 @@ function startEyeMovement(area){
     dot.style.animation = 'none'; void dot.offsetWidth; 
     dot.style.animation = `moveLeftRight ${window.emdrSpeed}s ease-in-out infinite alternate`;
   };
+}
+
+let historyChartInstance = null;
+function renderHistory() {
+  const historyStr = localStorage.getItem("mindshield_history");
+  const historyGrid = document.getElementById("history-grid");
+  
+  if (!historyStr || historyStr === "[]") {
+    historyGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text3); padding: 2rem; background: rgba(0,0,0,0.3); border-radius: 12px;">You haven't completed any assessments yet. Start an assessment to begin tracking your progress.</div>`;
+    if (historyChartInstance) historyChartInstance.destroy();
+    return;
+  }
+
+  const history = JSON.parse(historyStr);
+  
+  // Render Cards
+  historyGrid.innerHTML = history.slice().reverse().map(item => {
+    const date = new Date(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const color = item.risk_level === "high" ? "var(--danger)" : item.risk_level === "moderate" ? "var(--warn)" : "var(--success)";
+    return `
+      <div class="result-card" style="background:var(--glass-bg); backdrop-filter:blur(16px); border:1px solid var(--glass-border); border-radius:20px; padding: 1.5rem; text-align: left;">
+        <div style="font-size: 0.8rem; color: var(--text3); margin-bottom: 0.5rem;">${date}</div>
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+          <div style="font-family:'Syne',sans-serif; font-size: 1.5rem; font-weight: 700; color: ${color};">${item.depression_score}/10</div>
+          <div style="font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid ${color}; color: ${color}; text-transform: capitalize;">${item.risk_level} Risk</div>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text2); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${item.summary}</p>
+      </div>
+    `;
+  }).join("");
+
+  // Render Chart
+  const labels = history.map((_, i) => `Assessment ${i + 1}`);
+  const depressionData = history.map(item => item.depression_score);
+  const anxietyData = history.map(item => item.anxiety_score);
+
+  const ctx = document.getElementById('historyChart').getContext('2d');
+  if (historyChartInstance) historyChartInstance.destroy();
+
+  Chart.defaults.color = '#cbd5e1';
+  Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+  historyChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Depression', data: depressionData, borderColor: '#7c6ee6', backgroundColor: 'rgba(124,110,230,0.2)', fill: true, tension: 0.4 },
+        { label: 'Anxiety', data: anxietyData, borderColor: '#2dd4bf', backgroundColor: 'rgba(45,212,191,0.2)', fill: true, tension: 0.4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, max: 10, grid: { color: 'rgba(255,255,255,0.05)' } },
+        x: { grid: { color: 'rgba(255,255,255,0.05)' } }
+      },
+      plugins: {
+        legend: { labels: { usePointStyle: true } }
+      }
+    }
+  });
 }
 
 if(window.speechSynthesis){ speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices(); }
