@@ -2,6 +2,10 @@
 **Predictive Analytics & AI Mental Wellness Platform for Students**
 
 
+🌐 Live Demo:https://mindsheildai.onrender.com/  
+💻 GitHub: https://github.com/vansh1602/MINDSHIELDAI
+
+
 MindShield AI is a comprehensive, AI-driven mental health triage and regulation platform designed specifically for university students. It combines a conversational AI funnel, predictive machine learning, and hardware-accelerated therapeutic tools into a seamless Progressive Web App (PWA).
 
 ## ✨ Core Features
