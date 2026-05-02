@@ -108,7 +108,7 @@ def get_analytics():
     return jsonify(load_analytics())
 
 # ==========================================
-# 💬 GEMINI LLM CHAT API
+# 🤖 GEMINI LLM CHAT API
 # ==========================================
 
 @app.route('/api/chat', methods=['POST'])
@@ -147,7 +147,12 @@ def chat_api():
 
     except Exception as e:
         print(f"Gemini API Error: {e}")
-        return jsonify({"error": str(e)}), 500
+        # 🔥 The Fallback Feature: Instead of crashing, send a clean chat bubble back to the user!
+        fallback_msg = (
+            "Hey! My daily AI limit is maxed out from too many visitors today. 😅 "
+            "But my predictive ML model is still running perfectly—head over to the Risk Assessment tab to test it out!"
+        )
+        return jsonify({"reply": fallback_msg})
 
 
 if __name__ == '__main__':
