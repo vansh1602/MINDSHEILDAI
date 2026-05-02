@@ -1,7 +1,6 @@
 # 🧠 MindShield AI
 **Predictive Analytics & AI Mental Wellness Platform for Students**
 
-![MindShield UI](https://images.unsplash.com/photo-1436891620584-47fd0e565afb?q=80&w=1000&auto=format&fit=crop)
 
 MindShield AI is a comprehensive, AI-driven mental health triage and regulation platform designed specifically for university students. It combines a conversational AI funnel, predictive machine learning, and hardware-accelerated therapeutic tools into a seamless Progressive Web App (PWA).
 
