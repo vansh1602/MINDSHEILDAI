@@ -150,7 +150,7 @@ def chat_api():
         # 🔥 The Fallback Feature: Instead of crashing, send a clean chat bubble back to the user!
         fallback_msg = (
             "Hey! My daily AI limit is maxed out from too many visitors today. 😅 "
-            "But my predictive ML model is still running perfectly—head over to the Risk Assessment tab to test it out!"
+            "Please try again after some time! till then you can play games from games tab!!"
         )
         return jsonify({"reply": fallback_msg})
 
